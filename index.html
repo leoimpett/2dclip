@@ -6,6 +6,8 @@
     <title>2DCLIP</title>
     <script src="enable-threads.js"></script>
     <script src="./vips/vips.js"></script>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
   </head>
   <body>
     <style>
@@ -24,6 +26,10 @@
       body * {
     font-family: inherit;
         font-weight: 100;
+      }
+      a {
+        color: darkred;
+        font-weight: bold;
       }
       button{
         border-radius: 2px;
@@ -150,6 +156,12 @@
   z-index:999;
 }
 
+@media (max-width: 900px) { 
+    #step1{
+      width: 80vw;
+    }
+}
+
 #step2{
   width: 300px;
   border-radius: 0px 20px 20px 0px;
@@ -227,7 +239,8 @@
           All images (and the neural network) remain on your computer and are never sent to a server.
         </p>
 
-        <p>For more information see [Github link]. To get started, hit 'Load folder' below. </p>
+        <p>For more information see the <a href="https://github.com/leoimpett/2dclip" target="_blank">Github page</a>.</p>
+        To get started, hit 'Load folder' below. </p>
 
 
         Model:
@@ -239,6 +252,11 @@
      <br><br>
      <button  onclick="doAll()">Load folder</button>
      <br>
+     <br>
+     <button onclick="document.getElementById('helpText').style.display='block'; this.style.opacity=0.5;">Help! I don't have a folder of images</button>
+     <br><br>
+     <span id="helpText" style="display:none">Click <a href="./fitzwilliam_thumbs.zip">here</a> for a dataset to get you started. You might also try <a href="https://datasetsearch.research.google.com/" target="_blank">Google Dataset Search</a>, or going to a museum website and downloading all the images with a <a href="https://chrome.google.com/webstore/detail/image-downloader/cnpniohnfphhjihaiiggeabnkjhpaldj?hl=en-US" target="_blank"> browser extension</a>.
+     </span>
 
 
    </div>
@@ -751,7 +769,7 @@
 
                 // If imageCount > maxNImages, then alert
                 if (imageCount > maxNImages) {
-                  alert(`You have selected a directory with ${imageCount} images. This is more than the maximum number of images allowed - only the first ${maxNImages} images will be read from the directory.`);
+                  alert(`You have selected a directory with ${imageCount} images. This is more than the maximum number of images recommended (1000).`);
                 }
 
 
@@ -1080,14 +1098,14 @@
           }
 
 
-          const minDistance = imSize/3;
+          const minDistance = imSize/2;
 
           // create a force-directed layout with repulsion, attraction, and collision forces
           const simulation = d3.forceSimulation(imageData)
             // .force('repulsion', d3.forceManyBody().strength(-10))
             // .force('attraction', d3.forceRadial().radius(100).strength(0.1))
             // .force('collision', d3.forceCollide().radius(d => minDistance + d.radius))
-            .force('collision', d3.forceCollide().radius(d =>  d.radius))
+            .force('collision', d3.forceCollide().radius(minDistance))
             // .force("gravity", d3.forceRadial(width / 2, height / 2, 50).strength(0.01))
             // add any other forces or constraints as needed
             .stop();
