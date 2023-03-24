@@ -72,6 +72,7 @@
   font-size: 14px;
   /* font-family: Arial, sans-serif; */
   fill: black;
+  background-color: rgba(255, 255, 255, 0.5);
 }
 
 
@@ -171,7 +172,7 @@
   z-index:999;
 }
 #step2 * {
-  margin: 3px;
+  margin-top: 5px;
 }
 
 .grow {
@@ -280,10 +281,11 @@
           <hr>
           <h3>Plot</h3>
 
-
-        X: <input id="searchTextEl" style="width:100px;" value="" placeholder="X axis..." onkeyup="if(event.which==13) searchSort()">
+            <i>Enter any two search terms in the fields below - the similarity between the image and the term will control the position of the image. You can try concrete terms or abstract concepts. </i>
+            <br><br>
+        X: <input id="searchTextEl" style="width:100px;" value="" placeholder="Symmetry" onkeyup="if(event.which==13) searchSort()">
         <br>
-        Y: <input id="searchTextEl2" style="width:100px;" value="" placeholder="Y axis..." onkeyup="if(event.which==13) searchSort()">
+        Y: <input id="searchTextEl2" style="width:100px;" value="" placeholder="Sculpture" onkeyup="if(event.which==13) searchSort()">
         <br>
         <button id="searchBtn" onclick="searchSort()">Plot</button>
 
@@ -298,24 +300,24 @@
         <br>
         Hide toolbar:
         <input type="checkbox" id="hideToolbar" >
-
-        <button id="screenshot" onclick="getCSV()">Download as CSV</button>
-
         <hr>
         <h3>Image Processing</h3>
-
+        <button id="screenshot" onclick="getCSV()">Download as CSV</button>
+        <br>
         <div id="existingEmbeddingsFoundCtnEl" >
           <button id="changeFolder" onclick="pickDirectory({source:'local'});computeImageEmbeddings();clearD3()">Change folder</button>
-          <button onclick="computeImageEmbeddings()">Reload images</button>
           <br>
+          <button onclick="computeImageEmbeddings()">Reload images</button>
+          <br><br>
          <!-- Ignore preprocessed images:  -->
          <input id="onlyEmbedNewImagesCheckbox" type="checkbox" checked  style="display:none" >
        </div>
-       <div id="computedEmbeddings">
-        <span id="computeEmbeddingsProgressEl">0</span> of <span id="totalNumberImages">0</span> ims (<span id="computeEmbeddingsSpeedEl">?</span> ms/im) 
-        <progress id="computeEmbeddingsLoadingProgressBarEl" value="0"></progress>
-       </div>
        <span id="preexistingEmbeddingsEl"></span>
+       <div id="computedEmbeddings">
+        <span id="computeEmbeddingsProgressEl">0</span> of <span id="totalNumberImages">0</span> ims (<span id="computeEmbeddingsSpeedEl">?</span> ms/im). 
+        <progress id="computeEmbeddingsLoadingProgressBarEl" value="0"></progress>
+        <p><i>Still loading images, but feel free to enter some text in the axes above and hit enter.</i></p>
+       </div>
 
        <!-- <p>To change folder, just reload this page. </p> -->
         </div>
@@ -703,7 +705,7 @@
         recomputeAllEmbeddings = !onlyEmbedNewImagesCheckbox.checked;
         let gotSomeExistingEmbeddings = totalEmbeddingsCount > 0;
 
-        // Try: if gotSomeExistingEmbeddings, then force recomputeAllEmbeddings to be true
+        // Try: if not gotSomeExistingEmbeddings, then force recomputeAllEmbeddings to be true
         if (!gotSomeExistingEmbeddings) {
           console.log("forcing recompute")
           recomputeAllEmbeddings = true;
@@ -711,7 +713,7 @@
         
         if(onlyEmbedNewImagesCheckbox.checked && gotSomeExistingEmbeddings) {
           preexistingEmbeddingsEl.innerHTML = `Loaded ${Object.keys(embeddings).length} images.`; 
-          // hide computedEmbeddings
+          // hide computedEmbeddings 
           document.getElementById("computedEmbeddings").style.display = "none";
         }
         else {
@@ -831,6 +833,8 @@
 
               // Update computeEmbeddingsLoadingProgressBarEl with the ratio of imagesEmbedded to imageCount
               computeEmbeddingsLoadingProgressBarEl.value = imagesEmbedded / imageCount;
+              // Make sure that the progress bar is visible
+              document.getElementById("computedEmbeddings").style.display = "block";
 
               // If the ratio is not one, set step2 to :hover. Else remove :hover
               // maybe get rid of this
