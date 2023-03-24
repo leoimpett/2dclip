@@ -365,13 +365,18 @@
       //  STEP 1 //
       /////////////
 
+      var workersInitialised = false; // will be set to true after workers are initialized
+
+
+      var maxNImages = 1000;
 
       // doAll function
       function doAll() {
 
 
         // initialize workers
-        initializeWorkers();
+        if (!workersInitialised){initializeWorkers();}
+        
 
         // pick directory
           pickDirectory({source:'local'});
@@ -454,7 +459,9 @@
       let textTokenizer;
       async function initializeWorkers() {
 
+        workersInitialised = true; 
 
+        console.log("initialising workers")
 
 
         // show downloadingProgressBars
@@ -649,7 +656,7 @@
           //  The end of pickdirectory - is always going to be....
           // Wait until window.vips is defined
           while (window.vips === undefined) {
-            console.log("waiting for vips")
+            // console.log("waiting for vips")
             await sleep(100);
           }
           computeImageEmbeddings() // <-- this is the end of pickdirectory
@@ -742,7 +749,13 @@
                 // Print the total number of image files
                 console.log(`Total number of image files: ${imageCount}`);
 
-                // set innerhtml of totalNumberImages to imageCount
+                // If imageCount > maxNImages, then alert
+                if (imageCount > maxNImages) {
+                  alert(`You have selected a directory with ${imageCount} images. This is more than the maximum number of images allowed - only the first ${maxNImages} images will be read from the directory.`);
+                }
+
+
+                // set innerhtml of totalNumberImages to imageCount 
                 document.getElementById("totalNumberImages").innerHTML = imageCount;
 
 
@@ -780,6 +793,9 @@
             let worker = imageWorkers.filter(w => !w.busy)[0];
             worker.busy = true;
             imagesBeingProcessedNow++;
+            
+            if (Object.keys(embeddings).length >= maxNImages){continue}
+            
 
             (async function() {
               let startTime = Date.now();
@@ -799,11 +815,13 @@
               computeEmbeddingsLoadingProgressBarEl.value = imagesEmbedded / imageCount;
 
               // If the ratio is not one, set step2 to :hover. Else remove :hover
-              if (imagesEmbedded / imageCount != 1) {
+              if ((Object.keys(embeddings).length < imageCount)&&(Object.keys(embeddings).length < maxNImages)){
                 document.getElementById("step2").classList.add("hover");
               } else {
-                document.getElementById("step2").classList.remove("hover");
+                document.getElementById("step2").classList.remove("hover"); 
               }
+
+              
 
               
               let saveInterval = totalEmbeddingsCount > 50_000 ? 10_000 : 1000; // since saves take longer if there are lots of embeddings
@@ -817,6 +835,8 @@
 
               imagesBeingProcessedNow--;
             })();
+
+
           }
         }
         while(imagesBeingProcessedNow > 0) await sleep(10);
@@ -840,13 +860,15 @@
         resultsEl.innerHTML = "Loading...";
         await sleep(50);
 
+
+
         // X axis
         let searchTextEmbedding = await modelData[MODEL_NAME].text.embed(searchTextEl.value, onnxTextSession);
         let similarities = {};
         for(let [path, embedding] of Object.entries(embeddings)) {
           similarities[path] = cosineSimilarity(searchTextEmbedding, embedding);
         }
-        let similarityEntries = Object.entries(similarities).sort((a,b) => b[1]-a[1]).slice(0, 5000);
+        let similarityEntries = Object.entries(similarities).sort((a,b) => b[1]-a[1]).slice(0, maxNImages);
 
         // Y axis
         let searchTextEmbedding2 = await modelData[MODEL_NAME].text.embed(searchTextEl2.value, onnxTextSession);
@@ -854,7 +876,7 @@
         for(let [path, embedding] of Object.entries(embeddings)) {
           similarities2[path] = cosineSimilarity(searchTextEmbedding2, embedding);
         }
-        let similarityEntries2 = Object.entries(similarities2).sort((a,b) => b[1]-a[1]).slice(0, 5000);
+        let similarityEntries2 = Object.entries(similarities2).sort((a,b) => b[1]-a[1]).slice(0, maxNImages);
 
         if(dataSource === "reddit" && removeRedditNsfwEl.checked) {
           let nsfwTextEmbedding = await modelData[MODEL_NAME].text.embed(atob('cG9ybiBuYWtlZCBwZW5pcyB2YWdpbmEgbnVkZSBzZXggZGljayBwdXNzeSBzZXh1YWwgcG9ybm9ncmFwaGljIGFzcyBib29icw=='), onnxTextSession); // nsfw words (hidden with `btoa`) 
@@ -875,7 +897,7 @@
         // console.log("Similarity entries length: {}", similarityEntries.length)
         // console.log(similarityEntries.slice(0, 50))
 
-        for(let [path, score] of similarityEntries.slice(0, 5000)) {
+        for(let [path, score] of similarityEntries.slice(0, maxNImages)) {
           if(dataSource === "local") {
 
 
