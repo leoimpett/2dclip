@@ -288,6 +288,9 @@
         Y: <input id="searchTextEl2" style="width:100px;" value="" placeholder="Sculpture" onkeyup="if(event.which==13) searchSort()">
         <br>
         <button id="searchBtn" onclick="searchSort()">Plot</button>
+        <br>
+        <button id="screenshot" onclick="getCSV()">Download similarities as CSV</button>
+
 
         <hr>
         <h3>Visualize</h3>
@@ -302,8 +305,7 @@
         <input type="checkbox" id="hideToolbar" >
         <hr>
         <h3>Image Processing</h3>
-        <button id="screenshot" onclick="getCSV()">Download as CSV</button>
-        <br>
+        <!-- <br> -->
         <div id="existingEmbeddingsFoundCtnEl" >
           <button id="changeFolder" onclick="pickDirectory({source:'local'});computeImageEmbeddings();clearD3()">Change folder</button>
           <br>
