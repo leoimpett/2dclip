@@ -815,11 +815,12 @@
               computeEmbeddingsLoadingProgressBarEl.value = imagesEmbedded / imageCount;
 
               // If the ratio is not one, set step2 to :hover. Else remove :hover
-              if ((Object.keys(embeddings).length < imageCount)&&(Object.keys(embeddings).length < maxNImages)){
-                document.getElementById("step2").classList.add("hover");
-              } else {
-                document.getElementById("step2").classList.remove("hover"); 
-              }
+              // maybe get rid of this
+              // if ((Object.keys(embeddings).length < imageCount)&&(Object.keys(embeddings).length < maxNImages)){
+              //   document.getElementById("step2").classList.add("hover");
+              // } else {
+              //   document.getElementById("step2").classList.remove("hover"); 
+              // }
 
               
 
