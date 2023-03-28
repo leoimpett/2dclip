@@ -207,6 +207,12 @@
     padding:15px;
   }
 
+  .smallhelp{
+    font-size: small;
+    /* italic */
+    font-style: italic;
+  }
+
 
 
     </style>
@@ -236,11 +242,11 @@
         <h1>2D-CLIP</h1>
 
         <p>2D-CLIP lets you sort images using textual descriptions in two dimensions. 
-        </p><p>
+        </p><p class="smallhelp">
           All images (and the neural network) remain on your computer and are never sent to a server.
-        </p>
-
-        <p>For more information see the <a href="https://github.com/leoimpett/2dclip" target="_blank">Github page</a>.</p>
+          <br>
+         For more information see the <a href="https://github.com/leoimpett/2dclip" target="_blank">Github page</a>.
+         <br>
         To get started, hit 'Load folder' below. </p>
 
 
@@ -281,15 +287,15 @@
           <hr>
           <h3>Plot</h3>
 
-            <i>Enter any two search terms in the fields below - the similarity between the image and the term will control the position of the image. You can try concrete terms or abstract concepts. </i>
-            <br><br>
+            <p class="smallhelp">Enter any two search terms in the fields below - the similarity between the image and the term will control the position of the image. You can try concrete terms or abstract concepts. </p>
+            <!-- <br><br> -->
         X: <input id="searchTextEl" style="width:100px;" value="" placeholder="Symmetry" onkeyup="if(event.which==13) searchSort()">
         <br>
         Y: <input id="searchTextEl2" style="width:100px;" value="" placeholder="Sculpture" onkeyup="if(event.which==13) searchSort()">
         <br>
         <button id="searchBtn" onclick="searchSort()">Plot</button>
         <br>
-        <button id="screenshot" onclick="getCSV()">Download similarities as CSV</button>
+        <button id="screenshot" onclick="getCSV()">Download similarities</button>
 
 
         <hr>
@@ -314,11 +320,11 @@
          <!-- Ignore preprocessed images:  -->
          <input id="onlyEmbedNewImagesCheckbox" type="checkbox" checked  style="display:none" >
        </div>
-       <span id="preexistingEmbeddingsEl"></span>
-       <div id="computedEmbeddings">
+       <span id="preexistingEmbeddingsEl" class="smallhelp"></span>
+       <div id="computedEmbeddings" class="smallhelp">
         <span id="computeEmbeddingsProgressEl">0</span> of <span id="totalNumberImages">0</span> ims (<span id="computeEmbeddingsSpeedEl">?</span> ms/im). 
         <progress id="computeEmbeddingsLoadingProgressBarEl" value="0"></progress>
-        <p><i>Still loading images, but feel free to enter some text in the axes above and hit enter.</i></p>
+        <p class="smallhelp">Still loading images, but feel free to enter some text in the axes above and hit enter.</p>
        </div>
 
        <!-- <p>To change folder, just reload this page. </p> -->
@@ -390,7 +396,7 @@
       var workersInitialised = false; // will be set to true after workers are initialized
 
 
-      var maxNImages = 1000;
+      var maxNImages = 6000;
 
       // doAll function
       function doAll() {
@@ -714,7 +720,7 @@
         }
         
         if(onlyEmbedNewImagesCheckbox.checked && gotSomeExistingEmbeddings) {
-          preexistingEmbeddingsEl.innerHTML = `Loaded ${Object.keys(embeddings).length} images.`; 
+          preexistingEmbeddingsEl.innerHTML = `Loaded ${Object.keys(embeddings).length} preprocessed images.`; 
           // hide computedEmbeddings 
           document.getElementById("computedEmbeddings").style.display = "none";
         }
@@ -726,7 +732,7 @@
           embeddings = {}; // <-- maps file path (relative to top/selected directory) to embedding
         }
 
-        console.log(recomputeAllEmbeddings, gotSomeExistingEmbeddings, embeddings.length, embeddings)
+        console.log(recomputeAllEmbeddings, gotSomeExistingEmbeddings, Object.keys(embeddings).length)
         
         try {
           await recursivelyProcessImagesInDir(directoryHandle);
@@ -816,7 +822,7 @@
             worker.busy = true;
             imagesBeingProcessedNow++;
             
-            if (Object.keys(embeddings).length >= maxNImages){continue}
+            // if (Object.keys(embeddings).length >= maxNImages){continue}
             
 
             (async function() {
@@ -831,10 +837,14 @@
               imagesEmbedded++;
               totalEmbeddingsCount++;
               
-              computeEmbeddingsProgressEl.innerHTML = imagesEmbedded;
+              
+
+              // console.log(`Embedded ${Object.keys(embeddings).length} images in ${Date.now() - startTime} ms`);
+
+              computeEmbeddingsProgressEl.innerHTML = Object.keys(embeddings).length;
 
               // Update computeEmbeddingsLoadingProgressBarEl with the ratio of imagesEmbedded to imageCount
-              computeEmbeddingsLoadingProgressBarEl.value = imagesEmbedded / imageCount;
+              computeEmbeddingsLoadingProgressBarEl.value = Object.keys(embeddings).length / imageCount;
               // Make sure that the progress bar is visible
               document.getElementById("computedEmbeddings").style.display = "block";
 
