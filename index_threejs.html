@@ -1,0 +1,1895 @@
+
+<!-- TODO - around line 800 make it so that new calls dont rerender the whole scene.  -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>2DCLIP</title>
+    <script src="enable-threads.js"></script>
+    <script src="./vips/vips.js"></script>
+    <script src="umap-js.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
+    <!-- <script src="./TextureMerger.js"></script> -->
+    
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="stylesheet" href="2dclip.css">
+  
+  </head>
+  <body>
+    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.12.0/dist/ort.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.17.0/dist/tf.min.js"></script> <!-- NOTE: tfjs is currently only used for image preprocessing stuff. -->
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js" integrity="sha512-csNcFYJniKjJxRWRV1R7fvnXrycHP6qDR21mgz1ZP55xY5d+aHLfo9/FcGDQLfn2IfngbAHd8LdfsagcCqgTcQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> -->
+
+    <!-- <script src="https://cdn.jsdelivr.net/npm/pixi.js@5.3.4/dist/pixi.min.js"></script> -->
+
+    
+    <!-- <div class="absblock"> -->
+      <!-- <script>
+        if(Date.now() < 1648725949710+1000*60*60*24*365) { // display until start of April 2023
+          browserCompatibilityWarning.style.display = "";
+        }
+      </script> -->
+      <!-- <hr> -->
+
+      <div id="downloadingProgressBars" style="display:none" class="progressBarContainer">
+        Loading image model: <span id="imageModelLoadingMbEl"></span> <progress id="imageModelLoadingProgressBarEl" value="0"></progress> 
+        <br>
+        Loading text model: <span id="textModelLoadingMbEl"></span> <progress id="textModelLoadingProgressBarEl" value="0"></progress> 
+      </div>
+
+      <div id="renderingProgressBar" style="display:none" class="progressBarContainer">  
+        Loading thumbnails: <progress id="renderingProgressBarEl" value="0"></progress> <span id="renderingTimeLeft"></span> 
+      </div>
+
+      <div id="step1">
+        <h1>2D-CLIP</h1>
+
+        <p>2D-CLIP lets you sort images using textual descriptions in two dimensions. 
+        </p><p class="smallhelp">
+          All images (and the neural network) remain on your computer and are never sent to a server.
+          <br>
+         For more information see the <a href="https://github.com/leoimpett/2dclip" target="_blank">Github page</a>.
+         <br>
+        To get started, hit 'Load folder' below. </p> 
+
+
+        Model:
+     <select onchange="window.MODEL_NAME=this.value;" style="width:100px">
+      <option value="clip_vit_32_uint8">Small (CLIP ViT-B/32 quantised - smaller and less accurate)</option>
+       <option value="clip_vit_32">Big (CLIP ViT-B/32 original - larger but more accurate)</option>
+       <!-- <option value="lit_b16b">LiT B16B</option> -->
+     </select>
+     <br><br>
+     <button  onclick="doAll()">Load folder</button>
+     <br>
+     <br>
+     <button onclick="document.getElementById('helpText').style.display='block'; this.style.opacity=0.5;">Help! I don't have a folder of images</button>
+     <br><br>
+     <span id="helpText" style="display:none">Click <a href="./fitzwilliam_thumbs.zip">here</a> for a dataset to get you started. You might also try <a href="https://datasetsearch.research.google.com/" target="_blank">Google Dataset Search</a>, or going to a museum website and downloading all the images with a <a href="https://chrome.google.com/webstore/detail/image-downloader/cnpniohnfphhjihaiiggeabnkjhpaldj?hl=en-US" target="_blank"> browser extension</a>.
+     </span>
+
+
+   </div>
+
+
+
+      
+      <!-- <div id="" style="padding:0.5rem; background:lightgrey; margin:0.5rem;">      </div> -->
+        <!-- Choose model: -->
+
+        <!-- <button id="initWorkersBtn" onclick="initializeWorkers()">[1]</button>
+        <button id="pickDirectoryBtn" onclick="pickDirectory({source:'local'})">[2]</button> 
+        <button id="computeEmbeddingsBtn" onclick="computeImageEmbeddings(); this.disabled=true;">[3]</button> -->
+      
+          <div >
+
+          <div id="step2" class="grow" style="display:none">
+
+          <h2>CLIP-2D</h2>
+
+          <hr>
+          <h3>Plot</h3>
+
+            <p class="smallhelp">Enter any two search terms in the fields below - the similarity between the image and the term will control the position of the image. You can try concrete terms or abstract concepts. <br>
+            If you press "Plot" without entering any search terms, your images will be plotted based on visual similarity alone. </p>
+            <!-- <br><br> -->
+        X: <input id="searchTextEl" style="width:100px;" value="" placeholder="Symmetry"  ">
+        <!-- onkeyup="if(event.which==13)  -->
+        <br>
+        Y: <input id="searchTextEl2" style="width:100px;" value="" placeholder="Sculpture"  >
+        <br>
+        <button id="searchBtn"  >Plot</button>
+        <br>
+        <button id="screenshot" onclick="getCSV()">Download similarities</button>
+
+
+        <hr>
+        <h3>Visualize</h3>
+
+        <!-- Image size: <input type="range" id="imsizeslider" > -->
+        <!-- check button for force directed -->
+        <!-- <br> -->
+        Force separation:
+        <input type="checkbox" id="forceDirected" checked>
+        <br>
+        Hide toolbar:
+        <input type="checkbox" id="hideToolbar" >
+        <hr>
+        <h3>Image Processing</h3>
+        <!-- <br> -->
+        <div id="existingEmbeddingsFoundCtnEl" >
+          <button id="changeFolder" onclick="doAll()">Change folder</button>
+          <!-- <button id="changeFolder" onclick="pickDirectory({source:'local'});computeImageEmbeddings();clearD3()">Change folder</button> -->
+          <!-- <br> -->
+          <!-- <button onclick="computeImageEmbeddings()">Reload images</button> -->
+          <br><br>
+         <!-- Ignore preprocessed images:  -->
+         <input id="onlyEmbedNewImagesCheckbox" type="checkbox" checked  style="display:none" >
+       </div>
+       <span id="preexistingEmbeddingsEl" class="smallhelp"></span>
+       <div id="computedEmbeddings" class="smallhelp">
+        <span id="computeEmbeddingsProgressEl">0</span> of <span id="totalNumberImages">0</span> images<span id="computeEmbeddingsSpeedEl"></span>
+        <progress id="computeEmbeddingsLoadingProgressBarEl" value="0"></progress>
+        <p class="smallhelp">Loading images....</p>
+       </div>
+
+       <!-- <p>To change folder, just reload this page. </p> -->
+        </div>
+
+      </div>
+
+
+
+
+      
+      <div id="initCtnEl" style="padding:0.5rem; background:lightgrey; margin:0.5rem; display:none">
+        <b>Step 2:</b> Download and initialize the models.
+        <br>
+
+        <br>
+        Initialize workers: <progress id="workerInitProgressBarEl" value="0"></progress>
+        <div style="display:none;"> <!-- more workers (dividing threads between them) doesn't seem to make things faster -->
+          Number of image embedding workers/threads: <input id="numThreadsEl" type="range" min="1" max="4" value="4" oninput="numThreadsDisplayEl.textContent=this.value"> <span id="numThreadsDisplayEl"></span> <script>numThreadsEl.max = navigator.hardwareConcurrency; numThreadsDisplayEl.textContent=numThreadsEl.value;</script>
+        </div>
+        <br>
+      </div>
+
+      <div id="pickDirCtnEl" style="opacity:0.5; pointer-events:none; padding:0.5rem; background:lightgrey; margin:0.5rem;display:none">
+        <b>Step 3:</b> Pick a directory of images (images in subdirectories will be included).
+        <br>
+&nbsp;&nbsp;&nbsp;&nbsp;or&nbsp;&nbsp;&nbsp;&nbsp; <button id="useRedditImagesBtn" onclick="pickDirectory({source:'reddit'})">use ~200k reddit images</button> (remove nsfw:<input id="removeRedditNsfwEl" type="checkbox" checked>)
+        <br>
+        <div id="redditLoadProgressCtn" style="display:none;">Download progress: <progress id="redditProgressBarEl" value="0"></progress> <span id="redditProgressMbEl"></span></div>
+        <div id="existingEmbeddingsProgressCtn" style="display:none;">Loading existing embeddings: <span id="existingEmbeddingsLoadedEl">none</span></div>
+      </div>
+      
+      <!-- <div id="computeEmbeddingsCtnEl" style="opacity:0.5; pointer-events:none; padding:0.5rem; background:lightgrey; margin:0.5rem;display:none">
+        <b>Step 4:</b> Compute image embeddings. <span style="opacity:0.5;">(they will be saved as &lt;ModelName&gt;_embeddings.tsv in the selected directory)</span>
+        <br>
+
+      </div> -->
+
+
+
+      <div id="searchCtnEl" style="opacity:0.5; pointer-events:none; padding:0.5rem; background:lightgrey; margin:0.5rem;display:none">
+        <b>Step 6:</b> Enter a search term.
+        <br>
+      </div>
+    <!-- </div> -->
+
+    <!-- <hr> -->
+    <!-- <b>Results</b> <span style="opacity:0.5;">(hover for cosine similarities)</span> -->
+    <div id="resultsEl" style="margin-top:1rem; min-height:100vh; display:none"><span style="opacity:0.5;">Click the search button to compute the results.</span></div>
+    
+    <!-- <canvas id="canvas" width="1000" height="1000" style="border:1px solid black;"></canvas> -->
+
+    <div id="map-container" style="height:100%; width:100%;"></div>
+    <div id="x-axis-label"></div>
+    <div id="y-axis-label"></div> 
+
+
+            <!-- add here a little loading css spinner -->
+            <div id="searchSpinner" class="loader"> </div>
+
+
+      <div id="image-popup">
+        <div id="image-popup-content"></div>
+      </div>
+
+
+
+
+    <script>
+      /////////////
+      //  STEP 1 //
+      /////////////
+
+      var workersInitialised = false; // will be set to true after workers are initialized
+
+
+      // var maxNImages = 6000;
+
+      // doAll function
+      function doAll() {
+        searchBtn.disabled = true;
+        // disable changeFolder
+        changeFolder.disabled = true;
+
+
+
+  
+
+        // initialize workers
+        if (!workersInitialised){initializeWorkers();}
+        
+
+        // pick directory
+          pickDirectory({source:'local'});
+          console.log("directory picked")
+  
+      }
+      
+
+      // first we need to download the models and initialize the workers 
+      // window.MODEL_NAME = "clip_vit_32";
+      window.MODEL_NAME = "clip_vit_32_uint8"
+      window.modelData = {
+        clip_vit_32: {
+          image: {
+            modelUrl: (quantized) => `https://huggingface.co/rocca/openai-clip-js/resolve/main/clip-image-vit-32-${quantized ? "uint8" : "float32"}.onnx`,
+            embed: async function(blob, session) {
+              let rgbData = await getRgbData(blob);
+              const feeds = {input: new ort.Tensor('float32', rgbData, [1,3,224,224])};
+              const results = await session.run(feeds);
+              const embedVec = results["output"].data; // Float32Array
+              return embedVec;
+            }
+          },
+          text: {
+            modelUrl: (quantized) => `https://huggingface.co/rocca/openai-clip-js/resolve/main/clip-text-vit-32-${quantized ? "uint8" : "float32-int32"}.onnx`,
+            embed: async function(text, session) {
+              if(!window.textTokenizerClip) {
+                let Tokenizer = (await import("https://deno.land/x/clip_bpe@v0.0.6/mod.js")).default;
+                window.textTokenizerClip = new Tokenizer(); 
+              }
+              let textTokens = window.textTokenizerClip.encodeForCLIP(text);
+              textTokens = Int32Array.from(textTokens);
+              const feeds = {input: new ort.Tensor('int32', textTokens, [1, 77])};
+              const results = await session.run(feeds);
+              return [...results["output"].data];
+            },
+          }
+        },
+        lit_b16b: {
+          image: {
+            modelUrl: () => 'https://huggingface.co/rocca/lit-web/resolve/main/embed_images.onnx',
+            embed: async function(blob, session) {
+              
+              // TODO: Maybe remove tf from this code so you can remove the whole tfjs dependency
+              blob = await bicubicResizeAndCenterCrop(blob);
+              let inputImg = new Image();
+              await new Promise(r => inputImg.onload=r, inputImg.src=URL.createObjectURL(blob));
+              let img = tf.browser.fromPixels(inputImg);
+              img = tf.sub(tf.div(tf.expandDims(img), 127.5), 1);
+              let float32RgbData = img.dataSync();
+              
+              const feeds = {'images': new ort.Tensor('float32', float32RgbData, [1,224,224,3])};
+              const results = await session.run(feeds);
+              return results["Identity_1:0"].data;
+            },
+          },
+          text: {
+            modelUrl: () => 'https://huggingface.co/rocca/lit-web/resolve/main/embed_text_tokens.onnx',
+            embed: async function(text, session) {
+              // Here we use a custom tokenizer that is not part of the model
+              if(!window.bertTextTokenizerLit) {
+                window.bertTextTokenizerLit = await import("./bert-text-tokenizer.js").then(m => new m.BertTokenizer());
+                await window.bertTextTokenizerLit.load();
+              }
+              let textTokens = window.bertTextTokenizerLit.tokenize(text);
+              textTokens.unshift(101); // manually put CLS token at the start
+              textTokens.length = 16;
+              textTokens = [...textTokens.slice(0, 16)].map(e => e == undefined ? 0 : e); // pad with zeros to length of 16
+              textTokens = Int32Array.from(textTokens);
+              const feeds = {'text_tokens': new ort.Tensor('int32', textTokens, [1,16])};
+              const results = await session.run(feeds);
+              return [...results["Identity_1:0"].data];
+            }
+          }
+        },
+      };
+
+      let imageWorkers = [];
+      let onnxImageSessions = [];
+      let onnxTextSession;
+      let textTokenizer;
+      async function initializeWorkers() {
+
+        workersInitialised = true; 
+
+        console.log("initialising workers")
+
+
+        // show downloadingProgressBars
+        document.getElementById("downloadingProgressBars").style.display = "block";
+        console.log('showing progressbar')
+
+
+        // initWorkersBtn.disabled = true;
+        numThreadsEl.disabled = true;
+        
+        let useQuantizedModel = false;
+        
+        if(MODEL_NAME.endsWith("_uint8")) {
+          MODEL_NAME = MODEL_NAME.replace(/_uint8$/g, "");
+          useQuantizedModel = true;
+        }
+        
+        let imageOnnxBlobPromise = downloadBlobWithProgress(window.modelData[MODEL_NAME].image.modelUrl(useQuantizedModel), function(e) {
+          let ratio = e.loaded / e.total;
+          imageModelLoadingProgressBarEl.value = ratio;
+          imageModelLoadingMbEl.innerHTML = Math.round(ratio*e.total/1e6)+" MB";
+        });
+
+        let textOnnxBlobPromise = downloadBlobWithProgress(window.modelData[MODEL_NAME].text.modelUrl(useQuantizedModel), function(e) {
+          let ratio = e.loaded / e.total;
+          textModelLoadingProgressBarEl.value = ratio;
+          textModelLoadingMbEl.innerHTML = Math.round(ratio*e.total/1e6)+" MB";
+        });
+
+        let [imageOnnxBlob, textOnnxBlob] = await Promise.all([imageOnnxBlobPromise, textOnnxBlobPromise])
+        console.log("Blob sizes: ", imageOnnxBlob.size, textOnnxBlob.size);
+
+        let imageModelUrl = window.URL.createObjectURL(imageOnnxBlob);
+        let textModelUrl = window.URL.createObjectURL(textOnnxBlob);
+
+        // console.log("URLs: ", imageModelUrl, textModelUrl);
+        
+        let numImageWorkers = Number(numThreadsEl.value);
+        
+        // Inference latency is about 5x faster with wasm threads, but this requires these headers: https://web.dev/coop-coep/ I'm using this as a hack (in enable-threads.js) since Github pages doesn't allow setting headers: https://github.com/gzuidhof/coi-serviceworker
+        if(self.crossOriginIsolated) {
+          ort.env.wasm.numThreads = Math.ceil(navigator.hardwareConcurrency / numImageWorkers) / 2; // divide by two to utilise only half the CPU's threads because trying to use all the cpu's threads actually makes it slower
+        }
+
+        workerInitProgressBarEl.max = numImageWorkers + 2; // +2 because of text model and bpe library
+        
+        let imageModelExecutionProviders = ["wasm"]; // webgl is not compatible with this model (need to tweak conversion data/op types)
+
+        for(let i = 0; i < numImageWorkers; i++) {
+          let session = await ort.InferenceSession.create(imageModelUrl, { executionProviders: imageModelExecutionProviders }); 
+          onnxImageSessions.push(session);
+          imageWorkers.push({
+            session,
+            busy: false,
+          });
+          workerInitProgressBarEl.value = Number(workerInitProgressBarEl.value) + 1;
+        }
+        console.log("Image model loaded.");
+
+        onnxTextSession = await ort.InferenceSession.create(textModelUrl, { executionProviders: ["wasm"] }); // webgl is not compatible with this model (need to tweak conversion data/op types)
+        console.log("Text model loaded.");
+        workerInitProgressBarEl.value = Number(workerInitProgressBarEl.value) + 1;
+
+        window.URL.revokeObjectURL(imageModelUrl);
+        window.URL.revokeObjectURL(textModelUrl);
+
+        window.vips = await Vips(); // for bicubicly resizing images (since that's what CLIP expects)
+        window.vips.EMBIND_AUTOMATIC_DELETELATER = false;
+
+        workerInitProgressBarEl.value = Number(workerInitProgressBarEl.value) + 1;
+
+        // disableCtn(initCtnEl);
+        // enableCtn(pickDirCtnEl);
+
+        // hide searchSpinner
+        document.getElementById("searchSpinner").style.display = "none";
+
+
+        // hide downloadingProgressBars
+        document.getElementById("downloadingProgressBars").style.display = "none";
+        console.log('hiding progressbar')
+
+        
+
+
+      }
+
+
+      /////////////
+      //  STEP 2 //
+      /////////////
+      let directoryHandle;
+      let embeddingsFileHandle;
+      let embeddings;
+      let dataSource;
+      async function pickDirectory(opts={}) {
+        dataSource = opts.source;
+         
+        if(dataSource === "local") {
+          if(!window.showDirectoryPicker) return alert("Your browser does not support some modern features (specifically, File System Access API) required to use this web app. Please try updating your browser, or switching to Chrome, Edge, or Brave.");
+          directoryHandle = await window.showDirectoryPicker();
+          embeddingsFileHandle = await directoryHandle.getFileHandle(`${window.MODEL_NAME}_embeddings.tsv`, {create:true});
+          
+
+        }
+        
+        // let redditEmbeddingsBlob;
+        // if(dataSource === "reddit") {
+        //   if(window.MODEL_NAME !== "clip_vit_32") return alert("Sorry, there are only pre-computed Reddit image embeddings for the CLIP ViT-B/32 model at the moment.");
+        //   if(!removeRedditNsfwEl.checked && !confirm("Are you sure you'd like to see NSFW Reddit images?")) return;
+        //   if(removeRedditNsfwEl.checked) alert("Note that NSFW images are filtered from Reddit using CLIP, and CLIP can make mistakes, so some NSFW images may still be shown.");
+            
+        //   // pickDirectoryBtn.disabled = true;
+        //   // useRedditImagesBtn.disabled = true;
+        //   // useRedditImagesBtn.textContent = "Loading...";
+        //   // redditLoadProgressCtn.style.display = "";
+          
+        //   redditEmbeddingsBlob = await downloadBlobWithProgress("https://huggingface.co/datasets/rocca/top-reddit-posts/resolve/main/clip_embeddings_top_50_images_per_subreddit.tsv.gz", function(e) {
+        //     let ratio = e.loaded / e.total;
+        //     redditProgressBarEl.value = ratio;
+        //     redditProgressMbEl.innerHTML = Math.round(ratio*213)+" MB";
+        //   });
+        // }
+
+
+        
+        try {
+          existingEmbeddingsProgressCtn.style.display = "";
+          
+          embeddings = {};
+          let file, opts;
+          if(dataSource === "local") {
+            file = await embeddingsFileHandle.getFile();
+            opts = {};
+          }
+          if(dataSource === "online") {
+            // file = redditEmbeddingsBlob;
+            // opts = {decompress:"gzip"};
+            // add this back in for producton:
+            file = await embeddingsFileHandle.getFile();
+            opts = {};
+          }
+          
+          let i = 0;
+          for await (let line of makeTextFileLineIterator(file, opts)) {
+            if(!line || !line.trim()) continue; // <-- to skip final new line (not sure if this is needed)
+            // see how long line.split("\t") is 
+            splitline = line.split("\t");
+            if (splitline.length == 2) {
+              let [filePath, embeddingVec] = splitline
+            // console.log([filePath, embeddingVec])
+            embeddings[filePath] = JSON.parse(embeddingVec);
+            i++;
+            }
+            // if 3
+            else if (splitline.length == 3) {
+              let [filePath, embeddingVec, catalog] = splitline
+            embeddings[filePath] = JSON.parse(embeddingVec);
+            i++;
+            }
+            if(i % 1000 === 0) {
+              existingEmbeddingsLoadedEl.innerHTML = i;
+              await sleep(10);
+            }
+          }
+        } catch(e) {
+          embeddings = undefined;
+          console.log("No existing embedding found, or the embeddings file was corrupted:", e);
+          existingEmbeddingsProgressCtn.style.display = "none";
+        }
+        
+ 
+
+          // hide #step1
+          document.getElementById("step1").style.display = "none";
+          // show #step2
+          document.getElementById("step2").style.display = "block";
+          // Set step2 class to hover 
+          document.getElementById("step2").classList.add("hover");
+          // Set timeout to remove hover class 
+          setTimeout(function(){
+            document.getElementById("step2").classList.remove("hover");
+          }, 2000);
+
+ 
+
+
+        // show searchSpinner
+        document.getElementById("searchSpinner").style.display = "block";
+
+        
+
+          //  The end of pickdirectory - is always going to be....
+          // Wait until window.vips is defined
+          while (window.vips === undefined) {
+            // console.log("waiting for vips")
+            await sleep(100);
+          }
+
+          // Wait until embeddingsFileHandle is resolved
+
+          await embeddingsFileHandle;
+
+          if(dataSource === "local") {
+            computeImageEmbeddings() // <-- this is the end of pickdirectory
+          }
+
+      }
+      
+
+      /////////////
+      //  STEP 3 //
+      /////////////
+      let totalEmbeddingsCount = 0;
+      let imagesEmbedded;
+      let recentEmbeddingTimes = []; // how long each embed took in ms, newest at end
+      let recomputeAllEmbeddings;
+      let imagesBeingProcessedNow = 0;
+      let needToSaveEmbeddings = false;
+      async function computeImageEmbeddings() {
+
+        // show computedEmbeddings
+
+        console.log("Computing image embeddings...");
+        imagesEmbedded = 0;
+        totalEmbeddingsCount = Object.keys(embeddings).length;
+
+        recomputeAllEmbeddings = !onlyEmbedNewImagesCheckbox.checked;
+        let gotSomeExistingEmbeddings = totalEmbeddingsCount > 0;
+
+        // Try: if not gotSomeExistingEmbeddings, then force recomputeAllEmbeddings to be true
+        if (!gotSomeExistingEmbeddings) {
+          console.log("forcing recompute")
+          recomputeAllEmbeddings = true;
+        }
+        
+        if(onlyEmbedNewImagesCheckbox.checked && gotSomeExistingEmbeddings) {
+          preexistingEmbeddingsEl.display = "block";
+          preexistingEmbeddingsEl.innerHTML = `Loaded ${Object.keys(embeddings).length} preprocessed images.`; 
+          // hide computedEmbeddings 
+          document.getElementById("computedEmbeddings").style.display = "none";
+        }
+        else {
+          preexistingEmbeddingsEl.display = "none";
+          document.getElementById("computedEmbeddings").style.display = "block";
+        }
+
+        if(recomputeAllEmbeddings || !gotSomeExistingEmbeddings) {
+          embeddings = {}; // <-- maps file path (relative to top/selected directory) to embedding
+        }
+
+        // console.log(recomputeAllEmbeddings, gotSomeExistingEmbeddings, Object.keys(embeddings).length)
+        
+        try {
+          await recursivelyProcessImagesInDir(directoryHandle);
+          await saveEmbeddings();
+        } catch(e) {
+          console.error(e);
+          alert(e.message);
+        }
+
+        // disableCtn(computeEmbeddingsCtnEl);
+        // enableCtn(searchCtnEl);
+
+        // hide loading spinner
+        document.getElementById("searchSpinner").style.display = "none";
+
+        console.log("Done computing image embeddings.");
+
+        searchSort();
+
+      }
+
+
+      async function recursivelyProcessImagesInDir(dirHandle, currentPath="") {
+
+
+        // console.log(dirHandle, currentPath)
+            // image count first!!! 
+                  let imageCount = 0;
+
+                // Count the number of image files
+                for await (let [name, handle] of dirHandle) {
+                  const {kind} = handle;
+                  let path = `${currentPath}/${name}`;
+                  if (handle.kind === 'directory') {
+                    imageCount += await recursivelyProcessImagesInDir(handle, path);
+                  } else {
+                    // make lower case copy of path
+                    let pathLower = path.toLowerCase();
+
+                    let isImage = /\.(png|jpg|jpeg|webp|JPEG|JPG)$/.test(pathLower);
+                    if(!isImage) continue;
+
+                    imageCount++;
+                  }
+                }
+
+                // Print the total number of image files
+                // console.log(`Total number of image files: ${imageCount}`);
+
+                // If imageCount > maxNImages, then alert
+                // if (imageCount > maxNImages) {
+                //   alert(`You have selected a directory with ${imageCount} images. This is more than the maximum number of images recommended (1000).`);
+                // }
+
+
+                // set innerhtml of totalNumberImages to imageCount 
+                document.getElementById("totalNumberImages").innerHTML = imageCount;
+
+
+
+        for await (let [name, handle] of dirHandle) {
+          const {kind} = handle;
+          let path = `${currentPath}/${name}`;
+            // console.log(path)
+            // ignore folder ./thumbnails/
+            if(path.startsWith("/thumbnails")) continue;
+
+          if ((handle.kind === 'directory') ) {
+            await recursivelyProcessImagesInDir(handle, path);
+          } else {
+            // make lower case copy of path
+            let pathLower = path.toLowerCase();
+
+
+            let isImage = /\.(png|jpg|jpeg|webp|JPEG|JPG)$/.test(pathLower);
+            if(!isImage) continue;
+
+            // console.log("Processing image:", path)
+
+            let alreadyGotEmbedding = !!embeddings[path];
+
+            // console.log("Alreadygotembedding:",alreadyGotEmbedding)
+            // console.log("Recompute:", recomputeAllEmbeddings)
+            // console.log("needToSaveEmbeddings:", needToSaveEmbeddings)
+
+            if(alreadyGotEmbedding && !recomputeAllEmbeddings) continue;
+            
+            if(needToSaveEmbeddings) {
+              await saveEmbeddings();
+              needToSaveEmbeddings = false;
+            }
+              
+            while(imageWorkers.filter(w => !w.busy).length === 0) await sleep(1);
+            
+            let worker = imageWorkers.filter(w => !w.busy)[0];
+            worker.busy = true;
+            imagesBeingProcessedNow++;
+            
+            // if (Object.keys(embeddings).length >= maxNImages){continue}
+            
+
+            (async function() {
+
+              if (Object.keys(embeddings).length >= imageCount){
+                return;
+              }
+
+              // let startTime = Date.now();
+              
+
+              // try
+              try{
+              let blob = await handle.getFile();
+              const embedVec = await modelData[MODEL_NAME].image.embed(blob, worker.session);
+              // TODO - we can probably embed the path rather than the blob. This way we can use the embed function
+              // to save the thumbnails, rather than computing all the the thumbs twice (as 224 for embedding and as 256 for the rendering). 
+              // This is only an advantage when you have large images (otherwise you dont do the second step)
+
+              embeddings[path] = [...embedVec];
+              worker.busy = false;
+
+              imagesEmbedded++;
+              totalEmbeddingsCount++;
+              }
+              catch(e){
+                console.log(e)
+                console.log("Failed to process image ", path)
+              worker.busy = false;
+              }
+
+
+              
+              
+
+              // console.log(`Embedded ${Object.keys(embeddings).length} images in ${Date.now() - startTime} ms`);
+
+              computeEmbeddingsProgressEl.innerHTML = Object.keys(embeddings).length;
+
+              // Update computeEmbeddingsLoadingProgressBarEl with the ratio of imagesEmbedded to imageCount
+              if(imageCount){
+              computeEmbeddingsLoadingProgressBarEl.value = Object.keys(embeddings).length / imageCount;
+              // Make sure that the progress bar is visible
+              document.getElementById("computedEmbeddings").style.display = "block";
+            }
+
+              // If the ratio is not one, set step2 to :hover. Else remove :hover
+              // maybe get rid of this
+              // if ((Object.keys(embeddings).length < imageCount)&&(Object.keys(embeddings).length < maxNImages)){
+              //   document.getElementById("step2").classList.add("hover");
+              // } else {
+              //   document.getElementById("step2").classList.remove("hover"); 
+              // }
+
+              
+
+              
+              let saveInterval = totalEmbeddingsCount > 50_000 ? 10_000 : 1000; // since saves take longer if there are lots of embeddings
+              if(imagesEmbedded % saveInterval === 0) {
+                needToSaveEmbeddings = true;
+              }
+              
+              // recentEmbeddingTimes.push(Date.now()-startTime);
+              // if(recentEmbeddingTimes.length > 100) recentEmbeddingTimes = recentEmbeddingTimes.slice(-50);
+              // // if(recentEmbeddingTimes.length > 10) computeEmbeddingsSpeedEl.innerHTML = Math.round(recentEmbeddingTimes.slice(-20).reduce((a,v) => a+v, 0)/20);
+
+              // // Compute the expected time left
+              // let expectedTimeLeft = Math.round((imageCount - Object.keys(embeddings).length) * recentEmbeddingTimes.slice(-20).reduce((a,v) => a+v, 0)/20);
+              // // convert to minutes and seconds
+              // const expectedTimeString = `${Math.floor(expectedTimeLeft / 60000).toString().padStart(2, '0')}:${Math.floor((expectedTimeLeft % 60000) / 1000).toString().padStart(2, '0')}`;
+
+              // if(recentEmbeddingTimes.length > 10) computeEmbeddingsSpeedEl.innerHTML = expectedTimeString;
+
+              
+
+
+              imagesBeingProcessedNow--;
+            })();
+
+
+          }
+        }
+        while(imagesBeingProcessedNow > 0) await sleep(10);
+      }
+      
+
+      /////////////
+      //  STEP 4 //
+      /////////////
+
+      isRendered = false; 
+
+
+
+        // Change this to only fire once - on loading the directory. Handlers can then change the x-y coordinates of the images based on new axis values. 
+      async function searchSort() {
+
+
+        searchBtn.disabled = true;
+        // searchSpinner show
+        document.getElementById("searchSpinner").style.display = "block";
+        
+        
+        resultsEl.innerHTML = "Loading...";
+        await sleep(50);
+
+
+        let resultHtml = "";
+        let numResults = 0;
+        // imageResults = [];
+
+
+ 
+          // Then do UMAP stuff
+          dataArray = [];
+          orderedPath = [];
+        for(let [path, embedding] of Object.entries(embeddings)) {
+          // similarities[path] = cosineSimilarity(searchTextEmbedding, embedding);
+          dataArray.push(embedding);
+          orderedPath.push(path);
+        }
+
+        console.log("calculating umap...");
+
+
+        // const umap = new UMAP({distanceFn:"cosine"});
+        // Cosine distance doesn't seem to be working - check again some other time. 
+        const umap = new UMAP({minDist:.1});
+        // const umap = new UMAP({minDist:.1, nEpochs:300});
+      const umapPromise = umap.fitAsync(dataArray, epochNumber => {
+        // check progress and give user feedback, or return `false` to stop
+        if (epochNumber % 50 === 0) {
+          console.log("Epoch number: ", epochNumber);
+        }
+      });
+
+      console.log("calculating umap and loading embeddings in parallel...");
+
+      const imageResultsPromise = loadThumbnails(embeddings);
+
+      const [umap_embedding, imageResults] = await Promise.all([umapPromise, imageResultsPromise]);
+
+      console.log("done calculating umap and loading embeddings");
+
+      // Set d.score and d.score2 to umap_embedding[i].x and umap_embedding[i].y
+      for (let i = 0; i < imageResults.length; i++) {
+        ref_path = imageResults[i].path;
+        umap_index = orderedPath.indexOf(ref_path);
+        imageResults[i].score = umap_embedding[umap_index][0];
+        imageResults[i].score2 = umap_embedding[umap_index][1];
+      }
+
+
+        imageData = normalizeGrid(imageResults);
+
+        console.log("loaded thumbnails - rendering grid...");
+
+              // add checkbox forceDirected 
+              const forceDirected = d3.select("#forceDirected")
+              forceDirected.on("change", function(event) {
+                if (event.target.checked) {
+                  console.log("checked")
+
+                  for (let i = 0; i < scene.children.length; i++) {
+              const sprite = scene.children[i];
+              // change the sprite's position here
+              // if the sprite has userData.force_x defined...
+              if(sprite.userData.force_x){
+                sprite.position.set(  sprite.userData.force_x, sprite.userData.force_y);
+
+                // console.log(sprite.userData.force_x, sprite.userData.force_y)
+              }
+            } 
+
+            animate();
+                  
+
+                } else {
+                  // console.log("unchecked")
+                  // images.attr("x", d => d.orig_x)
+                  //       .attr("y", d => d.orig_y);
+
+                  for (let i = 0; i < scene.children.length; i++) {
+              const sprite = scene.children[i];
+              // if the sprite has userData.orig_x defined...
+              if(sprite.userData.orig_x){
+              sprite.position.set(  sprite.userData.orig_x, sprite.userData.orig_y);
+              }
+
+            } 
+
+            animate();
+                }
+              });
+
+
+              gridUpdating = false;
+
+              const updateGridButton = d3.select("#searchBtn")
+              updateGridButton.on("click", function(event) {
+                updateGrid();
+              });
+              function handleKeyUp(event) {
+                if (event.which === 13) {
+                  // updateGrid();
+                  // click updateGridButton
+                  updateGridButton.node().click();
+                }
+              }
+
+              document.querySelector('#searchTextEl').addEventListener('keyup', handleKeyUp);
+
+               document.querySelector('#searchTextEl2').addEventListener('keyup', handleKeyUp);
+
+              //  Set searchtext elements to blank
+              document.getElementById("searchTextEl").value = "";
+              document.getElementById("searchTextEl2").value = "";
+             
+
+              // Add "Plot" button event listener
+             async function updateGrid() {
+
+                if (gridUpdating) return;
+
+                gridUpdating=true; 
+                // grey out the button
+                searchBtn.disabled = true;
+                // searchSpinner show
+                document.getElementById("searchSpinner").style.display = "inline-block";
+
+
+                //  // X axis
+                //  let searchTextEmbedding = await modelData[MODEL_NAME].text.embed(searchTextEl.value, onnxTextSession);
+                // // Y axis
+                // let searchTextEmbedding2 = await modelData[MODEL_NAME].text.embed(searchTextEl2.value, onnxTextSession);
+
+                // let similarities = {};
+                // let similarities2 = {};
+                // for(let [path, embedding] of Object.entries(embeddings)) {
+                //   similarities[path] = cosineSimilarity(searchTextEmbedding, embedding);
+                //   similarities2[path] = cosineSimilarity(searchTextEmbedding2, embedding);
+                // }
+                // let similarityEntries = Object.entries(similarities);
+                // let similarityEntries2 = Object.entries(similarities2);
+ 
+
+                // X axis
+                const searchTextEmbeddingPromise = modelData[MODEL_NAME].text.embed(searchTextEl.value, onnxTextSession);
+
+                // Y axis
+                const searchTextEmbedding2Promise = modelData[MODEL_NAME].text.embed(searchTextEl2.value, onnxTextSession);
+
+                // Compute cosine similarities in parallel
+                const embeddingsEntries = Object.entries(embeddings);
+                const similaritiesPromises = embeddingsEntries.map(([path, embedding]) => {
+                  return Promise.all([searchTextEmbeddingPromise, searchTextEmbedding2Promise]).then(([searchTextEmbedding, searchTextEmbedding2]) => {
+                    const similarity = cosineSimilarity(searchTextEmbedding, embedding);
+                    const similarity2 = cosineSimilarity(searchTextEmbedding2, embedding);
+                    return [path, similarity, similarity2];
+                  });
+                });
+
+
+                // Wait for all cosine similarities to be computed
+                const similarityEntries = await Promise.all(similaritiesPromises);
+
+                // newImageResults = [];
+                // // Combine into imageResults
+                // for(let [path, score] of similarityEntries) {
+                //     let handle = await getFileHandleByPath(path);
+                //     let url = URL.createObjectURL(await handle.getFile());
+                //     // NB we reverse the y axis as it should point up
+                //     let score2 = similarities2[path];
+                //     newImageResults.push({url,path, score, score2});
+                // }
+
+                // Combine into imageResults
+                const imageResultsPromises = similarityEntries.map(async ([path, score, score2]) => {
+                  const handle = await getFileHandleByPath(path);
+                  const url = URL.createObjectURL(await handle.getFile());
+                  return { url, path, score, score2 };
+                });
+
+                const newImageResults = await Promise.all(imageResultsPromises);
+
+                newImageData = normalizeGrid(newImageResults);
+                
+                // now update sprite positions
+                for (let i = 0; i < newImageData.length; i++) {
+
+
+                  // get the correct sprite - where sprite.userData.path == newImageData[i].path
+                  const sprite = scene.children.find(sprite => sprite.userData.path == newImageData[i].path);
+                  // if sprite has position
+                  if (sprite.position) {
+                    // console.log("sprite has position")
+              // change the sprite's position here
+              // console.log(i+","+newImageData[i].x+","+newImageData[i].y)
+              sprite.position.set(  newImageData[i].x, newImageData[i].y);
+              // update userdata of orig_x orig_y force_x and force_y
+              sprite.userData.orig_x = newImageData[i].orig_x;
+              sprite.userData.orig_y = newImageData[i].orig_y;
+              sprite.userData.force_x = newImageData[i].force_x;
+              sprite.userData.force_y = newImageData[i].force_y;
+                  } 
+
+                }
+
+
+              // animate
+              animate();
+              gridUpdating = false;
+
+                // enable the button
+                searchBtn.disabled = false;
+                // searchSpinner hide
+                document.getElementById("searchSpinner").style.display = "none";
+
+             }
+
+
+
+                // X axis label
+                const xAxisLabel = document.querySelector("#x-axis-label");
+                if (xAxisLabel) {
+                  xAxisLabel.innerHTML = searchTextEl.value + " →";
+                  xAxisLabel.className = "axis-label";
+                }
+
+                // Y axis label
+                const yAxisLabel = document.querySelector("#y-axis-label");
+                if (yAxisLabel) {
+                  yAxisLabel.innerHTML = searchTextEl2.value + " →";
+                  yAxisLabel.className = "axis-label";
+                }
+
+
+
+              // Create a new Three.js scene
+              var scene = new THREE.Scene();
+
+console.log("three.js scene created");
+
+scene.background = new THREE.Color( 1, 1, 1 )
+// // Add a grid
+// Create a grid helper
+const gridHelper = new THREE.GridHelper(10, 10, 0x555555 , 0xeeeeee ); //, 0x000000, 0xffffff);
+// Rotate the grid to face the camera
+gridHelper.rotation.x = Math.PI / 2;
+// Add the grid helper to the scene
+scene.add(gridHelper);
+
+
+// Create a new Three.js camera
+var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 5;
+
+// Create a new Three.js renderer and add it to the page
+var renderer = new THREE.WebGLRenderer();
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.domElement.style.position = 'absolute';
+renderer.domElement.style.top = 0;
+renderer.domElement.style.left = 0;
+document.body.appendChild(renderer.domElement);
+
+
+// Create a new instance of OrbitControls
+var controls = new THREE.OrbitControls(camera, renderer.domElement);
+// controls.enableDamping = true;
+// controls.dampingFactor = 0.1;
+controls.enablePan = true;
+controls.enableZoom = true;
+controls.minDistance = .1;
+controls.maxDistance = 50;
+controls.mouseButtons = { 
+  LEFT: THREE.MOUSE.PAN,
+  MIDDLE: THREE.MOUSE.DOLLY
+}
+
+// Restrict camera movement to 2D panning and zooming
+controls.enableRotate = false;
+controls.minPolarAngle = Math.PI / 2;
+controls.maxPolarAngle = Math.PI / 2;
+
+                spritesAdded = 0;
+                maxLength = 0.2;
+                // // if > 1000 images then set maxLength to 0.05
+                // if (imageData.length > 1000) {
+                //   maxLength = 0.05;
+                // }
+                // // if > 3000 images then set maxLength to 0.01
+                // if (imageData.length > 3000) {
+                //   maxLength = 0.025;
+                // }
+
+
+                texloader = new THREE.TextureLoader()
+
+                // merge textures
+                // var textureMerger = new TextureMerger();
+                // for (let i = 0; i < imageData.length; i++) {
+                //   const url =  imageData[i].url;
+                //   textureMerger["texture" + (i + 1)] = loadedTextures[i];
+                // }
+                    
+
+                  console.log("spawning sprites ");
+
+
+                for (let i = 0; i < imageData.length; i++) {
+                  
+      const url =  imageData[i].url;
+      const sprite = new THREE.Sprite();
+      const texture = texloader.load( url, function() {
+      // Determine sprite dimensions and aspect ratio
+      const aspectRatio = texture.image.width / texture.image.height;
+      let width, height;
+      if (aspectRatio >= 1) {
+        width = maxLength;
+        height = maxLength / aspectRatio;
+      } else {
+        width = maxLength * aspectRatio;
+        height = maxLength;
+      }
+
+  // Set sprite scale and save original dimensions and aspect ratio in userData
+  sprite.userData.width = width;
+  sprite.userData.height = height;
+  sprite.userData.aspectRatio = aspectRatio;
+  sprite.scale.set(width, height, 1.0);
+
+
+
+  // free up the image URL
+  window.URL.revokeObjectURL(url);
+  });
+
+  sprite.material = new THREE.SpriteMaterial({ map: texture, transparent: true });
+
+  // Set X and Y coordinates from imageData
+  sprite.position.x = imageData[i].x;
+  sprite.position.y = imageData[i].y;
+
+  sprite.userData.orig_x = imageData[i].orig_x;
+  sprite.userData.orig_y = imageData[i].orig_y;
+
+  sprite.userData.force_x = imageData[i].x;
+  sprite.userData.force_y = imageData[i].y;
+  
+  // set sprite center
+  sprite.center = new THREE.Vector2(0.5, 0.5);
+
+  
+  sprite.userData.path = imageData[i].path;
+
+  scene.add(sprite);
+  spritesAdded++;
+
+  // for every 100 sprites added, log in console
+  if (spritesAdded % 1000 === 0) {
+    console.log("Sprites added: " + spritesAdded);
+  }
+
+}
+
+isDragging = false;
+isPopup = false;
+
+
+function bindEvents(state) {
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+
+  function onDocumentMouseDown(event) {
+    isDragging = false;
+    // Calculate normalized mouse coordinates
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    // Set raycaster origin and direction
+    raycaster.setFromCamera(mouse, state.camera);
+  }
+
+  async function onDocumentMouseUp(event) {
+
+    // check that the mouse is not over a div 
+    // if it is, then do not do anything
+  // Get the element that was clicked
+  const targetElement = event.target;
+  // Check if the element or any of its ancestors matches the '#step2' selector
+  if (targetElement.closest('#step2')) {
+    // The mouse was clicked over the '#step2' element or one of its descendants
+    return;
+  }
+
+
+
+// Calculate normalized mouse coordinates
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(mouse, state.camera);
+
+    // console.log("mouse up")
+    // console.log(mouse.x, mouse.y)
+
+    // if isDragging, continue
+    if (isDragging||isPopup) {
+      // console.log("isDragging")
+      return;
+    }
+    // else{console.log("is not dragging")}
+    // Prevent default browser behavior
+    event.preventDefault();
+    // Reset dragging flag to false
+    isDragging = false;
+    // Find intersected objects
+    const intersects = raycaster.intersectObjects(state.scene.children, true);
+    // console.log(intersects)
+    // Log the URL of the clicked sprite
+    if (intersects.length > 0 && !isDragging) {
+
+
+      // Find intersected sprite
+      const sprite = intersects.find((intersect) => intersect.object.isSprite)?.object;
+      if (sprite) {
+        // console.log("sprite found")
+        // console.log(sprite)
+        if (sprite.userData.path) {
+          // console.log(sprite.userData);
+
+          // make url from path
+
+          handle = await getFileHandleByPath(sprite.userData.path); 
+          url = URL.createObjectURL(await handle.getFile());
+
+          const imagePopup = document.querySelector("#image-popup");
+
+          imagePopup.style.display = "flex";
+          const imagePopupContent = document.querySelector("#image-popup-content");
+          imagePopupContent.style.backgroundImage = `url(${url})`;
+          isPopup=true;
+        }
+      }
+
+
+
+    }
+  }
+
+  const imagePopup = document.querySelector('#image-popup');
+imagePopup.addEventListener('click', () => {
+  imagePopup.style.display = 'none';
+  isPopup=false;
+});
+
+
+  function onDocumentMouseMove(event) {
+    // If moving, set dragging flag to true
+    isDragging = true;
+
+// Calculate normalized mouse coordinates
+mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    // Set raycaster origin and direction
+    raycaster.setFromCamera(mouse, state.camera);
+  }
+
+
+  function onWindowResize() {
+  // Update mouse coordinates when window is resized
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+  // // Update camera aspect ratio
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+
+  // Resize renderer to match new window dimensions
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  // Maintain aspect ratio of sprites
+  scene.traverse((object) => {
+    if (object.isSprite) {
+      const sprite = object;
+      const width = sprite.userData.width;
+      const height = sprite.userData.height;
+      const aspect = sprite.userData.aspectRatio;
+      const size = Math.min(width, height); // sprite size
+      sprite.scale.set(size * aspect, size, 1);
+    }
+  });
+}
+
+
+
+  function onCameraChange() {
+    // Update raycaster camera when camera changes position or zoom level
+    raycaster.camera = state.camera;
+  }
+
+  // Bind event listeners
+  window.addEventListener('mousedown', onDocumentMouseDown, false);
+  window.addEventListener('mouseup', onDocumentMouseUp, false);
+  window.addEventListener('mousemove', onDocumentMouseMove, false);
+  window.addEventListener('resize', onWindowResize, false);
+
+  // Set raycaster camera
+  raycaster.camera = state.camera;
+
+  // Listen for camera changes and update raycaster camera
+  state.camera.addEventListener('change', onCameraChange);
+}
+
+
+bindEvents({ scene, camera });
+
+
+            // Render the scene
+            function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      }
+
+
+
+
+
+      animate();
+
+      searchBtn.disabled = false;
+      // #searchSpinner hide 
+      document.getElementById("searchSpinner").style.display = "none";
+
+      isRendered = true;
+
+      }
+
+
+      // Hide toolbar when not in use
+      const checkbox = document.getElementById('hideToolbar')
+
+          checkbox.addEventListener('change', (event) => {
+            if (event.currentTarget.checked) {
+              // alert('checked');
+              document.documentElement.style.setProperty('--hide-opacity', '0');
+            } else {
+              // alert('not checked');
+              // Remove "extrahide" class to step2
+              document.documentElement.style.setProperty('--hide-opacity', '0.3');
+            }
+          })
+
+
+
+
+      /////////////////////////////
+      //  FUNCTIONS / UTILITIES  //
+      /////////////////////////////
+
+
+      function normalizeGrid(imageResults){
+
+
+        var imageData = [];
+
+        // Ideal density is roughly 100 images for a 2x2 grid - thus 25 images / unit. 
+        // We will scale the grid to fit the number of images we have.
+        const idealDensity = 25;
+        const density = imageResults.length / idealDensity;
+        const scale = Math.sqrt(density);
+        console.log("Scale: "+ scale + ", Density: " + density + ", Ideal Density: " + idealDensity)
+
+
+
+
+        // Get the minimum and maximum values of score and score2
+          const [minScore, maxScore] = d3.extent(imageResults, d => d.score);
+          const [minScore2, maxScore2] = d3.extent(imageResults, d => d.score2);
+
+
+          console.log("Range at start " + minScore + " " + maxScore + " " + minScore2 + " " + maxScore2)
+
+          // Create a linear scale for score and score2
+          const scaleScore = d3.scaleLinear()
+            .domain([minScore, maxScore])
+            .range([-scale, scale]);
+
+          const scaleScore2 = d3.scaleLinear()
+            .domain([minScore2, maxScore2])
+            .range([-scale, scale]);
+
+
+
+          for (let i = 0; i < imageResults.length; i++) {
+          imageData.push({
+            x: scaleScore(imageResults[i].score)  ,
+            y: (scaleScore2(imageResults[i].score2) ),
+            score: imageResults[i].score,
+            score2: imageResults[i].score2,
+            url: imageResults[i].url,
+            path: imageResults[i].path,
+            // also save the title as the end bit of the url
+            // title: imageResults[i].url.split("/").slice(-1)[0],
+            radius:20
+          });
+        }
+
+
+          // Try force directed layout
+
+          // centre the points so the median is at the centre
+          const xMedian = d3.median(imageData, d => d.x);
+          const yMedian = d3.median(imageData, d => d.y);
+          for (let i = 0; i < imageData.length; i++) {
+            imageData[i].x -= xMedian;
+            imageData[i].y -= yMedian;
+          }
+
+          // Save the old (x,y) pairs as orig_x and orig_y
+          for (let i = 0; i < imageData.length; i++) {
+            imageData[i].orig_x = imageData[i].x;
+            imageData[i].orig_y = imageData[i].y;
+          }
+
+
+
+          const collisionDistance = 0.12;
+
+          // create a force-directed layout with repulsion, attraction, and collision forces
+          const simulation = d3.forceSimulation(imageData)
+            .force('collision', d3.forceCollide().radius(collisionDistance))
+            .stop();
+          // run the simulation for a set number of iterations
+          nSimulation = 100;
+
+          // if more than X images make Y steps
+          if (imageData.length > 500) {
+            nSimulation = 300;
+          }
+
+          for (let i = 0; i < nSimulation; i++) {
+            simulation.tick(); 
+          }
+
+          // centre the post-simulated points so the median is at 0
+          const medianX = d3.median(imageData, d => d.x);
+          const medianY = d3.median(imageData, d => d.y);
+          for (let i = 0; i < imageData.length; i++) {
+            imageData[i].x -= medianX;
+            imageData[i].y -= medianY;
+          }
+
+
+          // Save the new simulation (x,y) pairs as force_x, force_y
+
+          for (let i = 0; i < imageData.length; i++) {
+            imageData[i].force_x = imageData[i].x;
+            imageData[i].force_y = imageData[i].y;
+          }
+
+          console.log("Range at end " + d3.extent(imageData, d => d.x) + " " + d3.extent(imageData, d => d.y))
+
+          return imageData;
+      }
+
+      async function loadThumbnails(embeddings) {
+
+        console.log("Loading thumbnails...")
+  // show progress bar
+  const progressBarContainer = document.getElementById("renderingProgressBar");
+  const progressBar = document.getElementById("renderingProgressBarEl");
+  const timeLeftSpan = document.getElementById("renderingTimeLeft");
+  progressBarContainer.style.display = "block";
+
+  const imageResults = [];
+
+  try {
+    directoryHandleThumb = await directoryHandle.getDirectoryHandle('thumbnails');
+  } catch {
+    directoryHandleThumb = await directoryHandle.getDirectoryHandle('thumbnails', { create: true });
+  }
+  
+  // Check if thumbnailPath is in directoryHandleThumb
+  thumbFileNames = [];
+  for await (let [name,handle] of directoryHandleThumb){
+    thumbFileNames.push(name);
+  }
+
+  // create an array of promises for loading all thumbnails
+  const promises = Object.entries(embeddings).map(async ([path, embedding]) => {
+    let url;
+    let handle;
+
+    // // index 
+    // const i = Object.keys(embeddings).indexOf(path);
+    // const score = umap_embedding[i][0];
+    // const score2 = umap_embedding[i][1];
+
+    // if path is not already a URL
+    if (!path.startsWith("http")) {
+      // console.log("Getting thumb " , path)
+      url = await getThumbnail(path, directoryHandleThumb, thumbFileNames);
+    } else {
+      url = path;
+    }
+
+    imageResults.push({ url, path });
+
+    // update progress bar
+    progressBar.value += 1;
+
+    // // calculate estimated time remaining
+    // const progress = progressBar.value / progressBar.max;
+    // const elapsedTime = (Date.now() - startTime) / 1000;
+    // const estimatedTimeRemaining = (elapsedTime / progress) - elapsedTime;
+
+    // // update progress bar label
+    // const timeLeft = formatTime(estimatedTimeRemaining);
+    // timeLeftSpan.innerHTML = `Time left: ${timeLeft}`;
+
+  });
+
+  // initialize progress bar
+  progressBar.max = promises.length;
+  progressBar.value = 0;
+
+  // record start time
+  // const startTime = Date.now();
+
+  // wait for all promises to resolve
+  await Promise.all(promises);
+
+  // hide progress bar
+  progressBarContainer.style.display = "none";
+
+  return imageResults;
+}
+
+function formatTime(seconds) {
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes < 10 ? '0' : ''}${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+}
+
+
+      function clearD3(){
+        d3.select("svg").remove();
+      }
+      
+      
+
+      async function getThumbnail(path, directoryHandleThumb, thumbFileNames, maxSize = 0.05) {
+      // Roughly 10 kB - thus 0.01 megabytes - for a 256x256 image. Only bother if it is more than 5 times bigger
+        const fileName = path.split("/").pop();
+  const thumbnailPath = `thumb_${fileName}`;  
+
+  const thumbnailExists = thumbFileNames.includes(thumbnailPath);
+  // console.log("thumbnailExists", thumbnailPath);
+  
+  
+  if ( thumbnailExists) {
+    // load thumbnail from file system
+    const thumbnailFile = await getThumbnailFile(directoryHandleThumb,thumbnailPath);
+    return URL.createObjectURL(thumbnailFile);
+  }
+
+  
+  // check if thumbnail already exists in .thumbnails folder
+  // const thumbnailPath = `./.thumbnails/${handle.name}`;
+ 
+
+  const handle = await getFileHandleByPath(path);
+  const maxDimension = 256;
+  const blob = await handle.getFile();
+  const sizeInMB = blob.size / (1024 * 1024);
+
+  if (sizeInMB <= maxSize){
+    // console.log('loaded from file system')
+    // load image direct from file system
+    return URL.createObjectURL(blob);
+  }
+
+  // console.log('creating thumbnail')
+
+  const image = new Image();
+  image.src = URL.createObjectURL(blob);
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+
+
+
+   // change directory handle to 'thumbnails' subfolder
+
+  //  console.log("Created/found thumbnails folder")
+
+  return new Promise((resolve) => {
+    image.onload = async () => {
+      const { width, height } = image;
+      canvas.width = width;
+      canvas.height = height;
+      context.drawImage(image, 0, 0);
+
+      let thumbnailWidth = width;
+      let thumbnailHeight = height;
+
+      if (thumbnailWidth > maxDimension) {
+        thumbnailWidth = maxDimension;
+        thumbnailHeight = Math.round(height * maxDimension / width);
+      }
+
+      if (thumbnailHeight > maxDimension) {
+        thumbnailHeight = maxDimension;
+        thumbnailWidth = Math.round(width * maxDimension / height);
+      }
+
+      const thumbnailCanvas = document.createElement('canvas');
+      const thumbnailContext = thumbnailCanvas.getContext('2d');
+      thumbnailCanvas.width = thumbnailWidth;
+      thumbnailCanvas.height = thumbnailHeight;
+      thumbnailContext.drawImage(canvas, 0, 0, width, height, 0, 0, thumbnailWidth, thumbnailHeight);
+
+      const thumbnailDataURL = thumbnailCanvas.toDataURL('image/jpeg', 0.8);
+
+      // save thumbnail to file system
+      await saveThumbnailFile(directoryHandleThumb, thumbnailPath, thumbnailCanvas);
+
+      resolve(thumbnailDataURL);
+    };
+  });
+}
+
+async function fileExists(path) {
+  try {
+    const file = await  stat(path);
+    return file.isFile();
+  } catch {
+    return false;
+  }
+}
+
+async function getThumbnailFile(dirHand, path) {
+  const handle = await  dirHand.getFileHandle(path, { create: false });
+  return await handle.getFile();
+}
+
+async function saveThumbnailFile(dirHand, path, canvas) {
+  // create file and write data to it
+  const fileHandle = await dirHand.getFileHandle(path, { create: true });
+  const writable = await fileHandle.createWritable();
+  canvas.toBlob(async function (blob) {
+    await writable.write(blob);
+    await writable.close();
+  }, 'image/jpeg', 0.8);
+}
+
+
+function sanitizeFilename(filename) {
+  return filename.replace(/[^a-zA-Z0-9-_.]/g, "_");
+}
+
+
+
+      async function getFileHandleByPath(path) {
+        let handle = directoryHandle;
+        let chunks = path.split("/").slice(1);
+        for(let i = 0; i < chunks.length; i++) {
+          let chunk = chunks[i];
+          if(i === chunks.length-1) {
+            handle = await handle.getFileHandle(chunk);
+          } else {
+            handle = await handle.getDirectoryHandle(chunk);
+          }
+        }
+        return handle;
+      }
+      
+      async function getRgbData(blob) { 
+        // let blob = await fetch(imgUrl, {referrer:""}).then(r => r.blob());
+
+        let resizedBlob = await bicubicResizeAndCenterCrop(blob);
+        let img = await createImageBitmap(resizedBlob);
+
+        let oscanvas = new OffscreenCanvas(224, 224);
+        let ctx = oscanvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        let imageData = ctx.getImageData(0, 0, oscanvas.width, oscanvas.height);
+
+        let rgbData = [[], [], []]; // [r, g, b]
+        // remove alpha and put into correct shape:
+        let d = imageData.data;
+        for(let i = 0; i < d.length; i += 4) { 
+          let x = (i/4) % oscanvas.width;
+          let y = Math.floor((i/4) / oscanvas.width)
+          if(!rgbData[0][y]) rgbData[0][y] = [];
+          if(!rgbData[1][y]) rgbData[1][y] = [];
+          if(!rgbData[2][y]) rgbData[2][y] = [];
+          rgbData[0][y][x] = d[i+0]/255;
+          rgbData[1][y][x] = d[i+1]/255;
+          rgbData[2][y][x] = d[i+2]/255;
+          // From CLIP repo: Normalize(mean=(0.48145466, 0.4578275, 0.40821073), std=(0.26862954, 0.26130258, 0.27577711))
+          rgbData[0][y][x] = (rgbData[0][y][x] - 0.48145466) / 0.26862954;
+          rgbData[1][y][x] = (rgbData[1][y][x] - 0.4578275) / 0.26130258;
+          rgbData[2][y][x] = (rgbData[2][y][x] - 0.40821073) / 0.27577711;
+        }
+        rgbData = Float32Array.from(rgbData.flat().flat());
+        return rgbData;
+      }
+      
+      async function bicubicResizeAndCenterCrop(blob) {
+        let im1 = vips.Image.newFromBuffer(await blob.arrayBuffer());
+
+        // Resize so smallest side is 224px:
+        const scale = 224 / Math.min(im1.height, im1.width);
+        let im2 = im1.resize(scale, { kernel: vips.Kernel.cubic });
+
+        // crop to 224x224:
+        let left = (im2.width - 224) / 2;
+        let top = (im2.height - 224) / 2;
+        let im3 = im2.crop(left, top, 224, 224)
+
+        let outBuffer = new Uint8Array(im3.writeToBuffer('.png'));
+        im1.delete(), im2.delete(), im3.delete();
+        return new Blob([outBuffer], { type: 'image/png' });
+      }
+
+
+      function downloadBlobWithProgressOld(url, onProgress) {
+        return new Promise((res, rej) => {
+          var blob;
+          var xhr = new XMLHttpRequest();
+          xhr.open('GET', url, true);
+          xhr.responseType = 'arraybuffer';
+          xhr.onload = function(e) {
+            blob = new Blob([this.response]);   
+          };
+          xhr.onprogress = onProgress;
+          xhr.onloadend = function(e){
+            res(blob);
+          }
+          xhr.send();
+        });
+      }
+
+
+      function downloadBlobWithProgress(url, onProgress) {
+  return new Promise((res, rej) => {
+    const filename = url.substring(url.lastIndexOf('/')+1);
+    const dbRequest = window.indexedDB.open('myDatabase', 1);
+    dbRequest.onerror = rej;
+    dbRequest.onupgradeneeded = function(event) {
+      const db = event.target.result;
+      db.createObjectStore('files');
+    };
+    dbRequest.onsuccess = function(event) {
+      const db = event.target.result;
+      const tx = db.transaction(['files'], 'readonly');
+      const store = tx.objectStore('files');
+      const getRequest = store.get(filename);
+      getRequest.onsuccess = function(event) {
+        const fileData = event.target.result;
+        if (fileData) {
+          // file already exists in IndexedDB, load from dataURL
+          const blob = dataURLToBlob(fileData);
+          res(blob);
+        } else {
+          // file does not exist in IndexedDB, download and save
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', url, true);
+          xhr.responseType = 'blob';
+          xhr.onload = function(e) {
+            const blob = this.response;
+            const reader = new FileReader();
+            reader.onloadend = function() {
+              const tx = db.transaction(['files'], 'readwrite');
+              const store = tx.objectStore('files');
+              store.put(reader.result, filename);
+            };
+            reader.readAsDataURL(blob);
+            res(blob);
+          };
+          xhr.onprogress = onProgress;
+          xhr.onerror = rej;
+          xhr.send();
+        }
+      };
+    };
+  });
+}
+
+function dataURLToBlob(dataURL) {
+  const arr = dataURL.split(',');
+  const mime = arr[0].match(/:(.*?);/)[1];
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while(n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], {type:mime});
+}
+// end of IndexedDB code
+
+      async function saveEmbeddings(opts={}) {
+        let writable = await embeddingsFileHandle.createWritable();
+        let textBatch = "";
+        let i = 0;
+        for(let [filePath, embeddingVec] of Object.entries(embeddings)) {
+          let vecString = opts.compress ? JSON.stringify(embeddingVec.map(n => n.toFixed(3))).replace(/"/g, "") : JSON.stringify(embeddingVec);
+          textBatch += `${filePath}\t${vecString}\n`;
+          i++;
+          if(i % 1000 === 0) {
+            await writable.write(textBatch);
+            textBatch = "";
+          }
+        }
+        await writable.write(textBatch);
+        await writable.close();
+      }
+      
+      // Tweaked version of example from here: https://developer.mozilla.org/en-US/docs/Web/API/ReadableStreamDefaultReader/read
+      async function* makeTextFileLineIterator(blob, opts={}) {
+        const utf8Decoder = new TextDecoder("utf-8");
+        let stream = await blob.stream();
+        
+        if(opts.decompress === "gzip") stream = stream.pipeThrough(new DecompressionStream("gzip"));
+        
+        let reader = stream.getReader();
+        
+        let {value: chunk, done: readerDone} = await reader.read();
+        chunk = chunk ? utf8Decoder.decode(chunk, {stream: true}) : "";
+
+        let re = /\r\n|\n|\r/gm;
+        let startIndex = 0;
+
+        while (true) {
+          let result = re.exec(chunk);
+          if (!result) {
+            if (readerDone) {
+              break;
+            }
+            let remainder = chunk.substr(startIndex);
+            ({value: chunk, done: readerDone} = await reader.read());
+            chunk = remainder + (chunk ? utf8Decoder.decode(chunk, {stream: true}) : "");
+            startIndex = re.lastIndex = 0;
+            continue;
+          }
+          yield chunk.substring(startIndex, result.index);
+          startIndex = re.lastIndex;
+        }
+        if (startIndex < chunk.length) {
+          // last line didn't end in a newline char
+          yield chunk.substr(startIndex);
+        }
+      }
+
+      function cosineSimilarity(A, B) {
+        if(A.length !== B.length) throw new Error("A.length !== B.length");
+        let dotProduct = 0, mA = 0, mB = 0;
+        for(let i = 0; i < A.length; i++){
+          dotProduct += A[i] * B[i];
+          mA += A[i] * A[i];
+          mB += B[i] * B[i];
+        }
+        mA = Math.sqrt(mA);
+        mB = Math.sqrt(mB);
+        let similarity = dotProduct / (mA * mB);
+        return similarity;
+      }
+
+      function sleep(ms) {
+        return new Promise(r => setTimeout(r, ms));
+      }
+
+      function enableCtn(el) {
+        el.style.opacity = 1;
+        el.style.pointerEvents = "";
+      }
+      function disableCtn(el) {
+        el.style.opacity = 0.5;
+        el.style.pointerEvents = "none";
+      }
+
+
+      function getCSV() {
+  // We want 3 columns to our CSV: filename, prompt1 (score), and prompt 2 (score2).
+  // searchtextel
+  const prompt1 = document.getElementById('searchTextEl').value;
+  const prompt2 = document.getElementById('searchTextEl2').value;
+
+  // If prompt1 or prompt2 are empty, replace with x-axis or y-axis
+  prompt1Label = prompt1 || 'x-axis-UMAP';
+  prompt2Label = prompt2 || 'y-axis-UMAP';
+
+  let csv = 'Image,' + prompt1Label + ',' + prompt2Label + '\n';
+
+  // Iterate through the d3 data and add a row for each file, with d.score and d.score2 
+  // as the prompt1 and prompt2 scores.
+  for (let i = 0; i < imageResults.length; i++) {
+    const d = imageResults[i];
+    // Strip any commas from d.path 
+    const path = d.path.replace(/,/g, '');
+    csv += path + ',' + d.score + ',' + d.score2 + '\n';
+  }
+
+  // Create a Blob object from the CSV data.
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+
+  // Create a URL for the Blob object using the createObjectURL() method.
+  const url = URL.createObjectURL(blob);
+
+  // Create a link element and set its attributes.
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', '2DCLIP.csv');
+
+  // Trigger a click event on the link element to download the CSV file.
+  link.click();
+}
+
+      
+
+      // From the PyTorch model running on CUDA:
+      // Text: "a portrait of an astronaut with the American flag" 
+      // Embedding: [-1.6626e-01,  5.2277e-02, -1.5332e-01,  4.4946e-01,  2.0667e-01, -2.9565e-01,  4.0588e-02, -4.1016e-01, -1.5027e-01,  3.1934e-01, -6.9702e-02, -2.5488e-01,  1.2335e-01, -9.5337e-02,  2.4109e-01, -4.8950e-02,  2.6074e-01,  5.3835e-04,  2.1033e-01,  3.7012e-01, 4.5679e-01,  3.9795e-01,  3.1641e-01,  3.9551e-01,  1.3931e-02, -4.3060e-02,  4.8798e-02,  3.7158e-01,  1.1731e-01, -3.7256e-01, -2.7295e-01,  3.3130e-01,  5.4980e-01, -2.9816e-02, -2.5806e-01, -1.0016e-01,  8.0750e-02, -6.7139e-02, -2.4072e-01,  2.4353e-01, -3.2202e-01, -1.0327e-01,  1.1566e-01,  6.2646e-01,  1.8262e-01, 2.7539e-01, -1.1816e-01,  4.9512e-01,  8.9539e-02,  5.6299e-01, 2.1313e-01, -1.5625e-01,  1.9958e-01, -5.0049e-01, -2.5854e-01, -4.0430e-01, -1.1298e-01, -6.6338e-03,  2.5391e-01, -5.0629e-02, 2.2253e-01, -2.7295e-01, -5.8289e-03, -4.8804e-01, -7.7820e-02, -3.5187e-02, -3.7537e-02,  4.3213e-01,  3.8300e-02,  2.1045e-01, -3.0347e-01, -9.8999e-02, -1.7407e-01,  2.8882e-01,  1.1322e-01, -1.0883e-01,  1.7065e-01, -2.1191e-01,  1.7920e-01, -1.2805e-01, -4.6924e-01,  1.1957e-01, -1.1829e-01, -1.1902e-01, -2.4353e-01, -9.6008e-02,  2.2913e-01, -1.0948e-02, -1.5686e-01, -2.0483e-01, -2.4756e-01,  9.1125e-02, -9.5557e-01, -4.2511e-02,  4.6356e-02, 4.3481e-01,  2.3633e-01, -3.3252e-01,  3.7231e-01, -5.5695e-02, 7.1777e-02, -1.0370e-01, -2.1912e-01, -1.3733e-01,  1.2048e-01, 1.7151e-01, -1.2659e-01,  2.3523e-01,  2.6001e-01, -4.0381e-01, 1.1761e-01, -4.1626e-02,  1.0974e-01, -5.5206e-02,  4.9713e-02, 5.2197e-01,  3.9124e-02,  5.7959e-01,  9.9609e-02, -3.3740e-01, -2.7295e-01, -7.3389e-01,  1.0962e-01, -3.2178e-01,  6.5869e-01, 2.3460e-03,  2.6733e-02,  3.2471e-02, -2.4500e-01,  7.9041e-02, 1.5405e-01, -3.5547e-01, -1.5625e-01,  4.2695e+00, -1.6113e-01, 1.6467e-01, -3.8794e-01,  2.1545e-02,  1.5771e-01,  2.0068e-01, -3.4741e-01,  2.5244e-01,  1.2201e-01, -3.9795e-02,  3.2471e-01, 2.6562e-01,  1.2915e-01,  1.4465e-02, -2.1265e-01, -2.5055e-02, 5.6689e-01, -6.5125e-02,  1.1652e-01, -5.1025e-01,  1.0712e-01, 8.8867e-02,  1.6882e-01, -6.5125e-02,  4.5929e-02,  2.9517e-01, 6.5479e-01, -9.0881e-02, -4.6417e-02, -3.0713e-01, -5.1537e-03, 4.9390e-01,  5.4492e-01, -3.1812e-01, -6.0577e-02,  3.6591e-02, 7.6782e-02, -3.5181e-01,  4.9487e-01, -4.1040e-01,  4.3970e-01, 1.6553e-01, -3.7329e-01,  3.3594e-01, -1.9263e-01, -1.8225e-01, -1.9623e-02, -4.0454e-01,  1.6187e-01,  1.5259e-01,  2.5122e-01, 1.1993e-01, -8.4595e-02, -4.1016e-01, -1.8225e-01,  1.8555e-01, -3.9124e-02,  2.5122e-01, -2.2949e-01,  5.3125e-01, -1.0504e-01, -2.1439e-02, -2.2559e-01,  5.9357e-02, -3.9160e-01, -3.3716e-01, -9.0393e-02, -1.7493e-01, -2.5952e-01,  2.3401e-01,  3.8013e-01, 1.2927e-01,  1.5491e-01,  1.1920e-01, -1.5906e-01,  5.7487e-03, 7.6172e-02,  1.5552e-01,  2.1790e-01,  9.9304e-02, -3.8025e-02, -1.1829e-01, -1.3293e-01, -2.2278e-01, -2.1472e-01,  3.0957e-01, -1.0254e-01, -2.0264e-01, -2.6840e-02,  8.8379e-02, -8.2092e-02, 1.3647e-01, -2.1399e-01, -2.5684e-01,  1.3745e-01,  6.1371e-02, -1.2988e-01,  6.2683e-02,  1.2964e-01, -3.3112e-02,  1.4111e-01, -2.6440e-01,  4.7379e-03, -1.0815e-01, -4.4971e-01, -3.5583e-02, 1.1469e-01,  6.7871e-02, -5.8350e-02,  1.0297e-01, -6.3086e-01, -8.3350e-01,  4.3481e-01, -1.7383e-01, -1.5491e-01, -5.5176e-01, 5.9766e-01, -2.6880e-01,  5.6976e-02, -2.6318e-01, -4.0466e-02, 2.4927e-01, -1.4893e-01, -2.0032e-01, -2.7515e-01, -1.2598e-01, 3.2440e-02, -1.2939e-01,  6.8018e-01, -3.6060e-01, -3.3496e-01, 9.8267e-02, -1.0010e-01,  1.9653e-01, -3.3032e-01, -2.0032e-01, 1.9116e-01,  8.2214e-02,  3.2397e-01,  1.3708e-01,  3.0899e-02, 1.5454e-01,  3.2422e-01,  1.0693e-01,  3.1714e-01,  3.7280e-01, -2.3401e-01, -5.0171e-02,  7.6758e-01,  2.2046e-01,  3.3997e-02, 1.0231e-02, -2.3999e-01, -1.3672e-01,  5.2002e-01, -6.5552e-02, 6.9275e-02,  2.3706e-01, -3.8257e-01,  1.4990e-01, -2.2656e-01, 4.3018e-01, -4.4678e-01,  2.5977e-01,  3.8208e-01,  9.5215e-02, -2.0239e-01, -2.3169e-01, -3.1396e-01,  3.2806e-02, -2.7905e-01, -1.0361e+00,  3.8147e-02, -1.0278e-01,  2.8369e-01, -3.8623e-01, -2.3132e-01,  1.5784e-01,  4.2734e+00, -1.5820e-01, -1.4758e-01, 2.0032e-01, -1.9678e-01, -7.5586e-01,  1.0712e-01, -2.1777e-01, -4.0552e-01, -1.0919e-01,  1.1932e-01,  7.3486e-01, -1.7700e-01, 5.0732e-01, -9.7351e-02, -4.7192e-01,  5.9052e-02, -7.0117e-01, -1.8774e-01,  2.4329e-01,  3.5083e-01, -2.3633e-01,  2.2205e-01, -2.4719e-03,  4.4507e-01, -1.1005e-01,  5.6494e-01, -1.4697e-01, -8.5022e-02, -2.6050e-01, -8.3679e-02,  3.0615e-01,  1.0181e-01, -2.2266e-01, -1.2054e-01,  1.0094e-02, -1.6382e-01,  3.7671e-01, 1.1371e-01,  8.8959e-03, -1.2866e-01,  7.5500e-02, -3.1177e-01, 9.0698e-02,  2.4139e-02,  2.7124e-01,  4.1382e-01,  9.3872e-02, -3.5815e-01, -1.0602e-01, -2.7637e-01,  1.5613e-01,  2.6025e-01, -1.3428e-01, -2.1509e-01, -3.0005e-01,  7.7515e-02, -2.2253e-01, -1.2634e-01,  1.0114e-01,  2.9395e-01,  4.2065e-01, -4.6425e-03, -6.3721e-01, -4.0308e-01, -5.1849e-02, -9.1309e-02,  1.0577e-01, -1.6800e-02, -4.4823e-03,  2.4231e-01, -1.3635e-01,  1.7041e-01, -9.9243e-02, -1.2439e-01,  1.5247e-01,  1.4717e-02, -1.6785e-01, -3.0615e-01,  2.6074e-01,  1.0938e-01,  4.9487e-01,  1.0529e-01, 3.1799e-02,  7.5928e-02, -1.1212e-01, -3.1201e-01,  5.8740e-01, -1.3171e-01, -1.1090e-01,  5.8887e-01, -1.1420e-01, -2.0056e-01, 1.0425e-01,  2.7710e-01, -5.8098e-03,  5.7324e-01, -1.4417e-01, 1.4575e-01, -2.7466e-01, -2.1313e-01, -1.7627e-01,  1.5466e-01, 3.8013e-01, -1.4612e-01, -2.7246e-01, -1.8604e-01,  1.0394e-01, 1.6016e-01, -1.1017e-01,  1.8140e-01, -3.0078e-01,  6.0303e-01, -1.3904e-01,  1.7322e-01,  2.2510e-01,  2.3303e-01, -5.0879e-01, -2.3462e-01, -2.0544e-01, -2.4768e-01, -2.4121e-01, -7.2754e-01, 7.2754e-01, -4.4312e-02, -1.4198e-02, -1.1475e-01, -1.3684e-01, -3.5278e-01,  1.2347e-01, -2.9602e-02,  4.0550e-03,  1.1951e-01, -6.5575e-03, -7.1228e-02, -3.8062e-01,  6.5125e-02, -1.6541e-01, -3.0289e-02,  8.6609e-02, -1.2134e-01, -1.2164e-01,  3.0319e-02, -1.5173e-01, -7.9834e-02,  1.4148e-01,  2.7319e-01, -2.1545e-01, -1.6382e-01, -2.9419e-01, -2.6611e-01, -7.5102e-04,  1.3135e-01, 9.8389e-02,  3.1812e-01,  5.5115e-02, -5.3253e-02,  4.3823e-02, 3.6957e-02, -1.3599e-01,  1.1023e-01,  9.8267e-02,  2.1643e-01, 9.3567e-02,  1.2718e-02,  1.6406e-01, -1.0338e-02,  1.9019e-01, 1.4392e-01,  3.3081e-02,  1.0138e-01, -1.6943e-01,  8.6136e-03, 1.4478e-01,  1.0941e-02,  1.3635e-01, -8.1543e-01, -3.4912e-01, 7.4959e-03,  2.1997e-01, -2.5681e-02,  2.3206e-01,  3.7622e-01, 3.6401e-01, -1.6357e-01, -2.0984e-01, -1.3220e-01, -6.7322e-02, 2.0117e-01, -4.7583e-01,  6.8054e-02,  2.2437e-01,  2.6709e-01, -5.4626e-02, -4.0741e-02,  5.2002e-02, -1.8872e-01,  3.1372e-01, -1.3574e-01, -2.6538e-01];
+    </script>
+  </body>
+</html>

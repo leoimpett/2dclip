@@ -1,0 +1,246 @@
+
+:root {
+    --hide-opacity: 0.3;
+  }
+
+    html {
+      overflow:clip;
+      /* Gill Sans, sans-serif */
+      /* font-family: Helvetica, sans-serif; */
+      /* font-family: Gill Sans, sans-serif; */
+      font-family: Andale Mono, monospace;
+    }
+    body * {
+  font-family: inherit;
+      font-weight: 100;
+    }
+    a {
+      color: darkred;
+      font-weight: bold;
+    }
+    button{
+      border-radius: 2px;
+      font-size: 14px;
+    }
+    #tooltip{
+      width:100px;
+      height:25px;
+      position:absolute;
+    }
+    .absblock{
+      position:absolute;
+      top:0;
+      left:0;
+      width:20vw;
+      height:20vh;
+      overflow:auto;
+      z-index:100;
+    }
+    #map-container {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index:-1;
+    }
+    #x-axis-label {
+position: fixed;
+bottom: 2em;
+left: 50%;
+transform: translateX(-50%);
+}
+
+#y-axis-label {
+position: fixed;
+top: 50%;
+left: 0;
+transform: translateY(-50%) rotate(-90deg);
+}
+.axis-label {
+font-size: 14px;
+/* font-family: Arial, sans-serif; */
+fill: black;
+background-color: rgba(255, 255, 255, 0.5);
+}
+
+
+
+#image-popup {
+  /* Popup above the rest of the page - fill center of page */
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  z-index: 999;
+  /* Hide for now */
+  display: none;
+  top: 0;
+  left: 0;
+  /* Center contents */
+  display: none;
+  justify-content: center;
+  align-items: center;
+  /* Semi-transparent black background */
+  background: rgba(0, 0, 0, 0.5);
+  /* Blur the content underneath the popup */
+  backdrop-filter: blur(5px);
+}
+ 
+
+#image-popup-content {
+  /* Center the image within the popup */
+  /* Set maximum size to 80% */
+  max-width: 80%;
+  max-height: 80%;
+  /* Set width and height to 80% */
+  width: 80%;
+  height: 80%;
+  /* Control how the image is scaled to fit the available space */
+  object-fit: contain;
+  background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
+
+
+
+.loader {
+display:none;
+position: absolute;
+/* put in the centre of the page */
+top: 50%;
+left: 50%;
+font-size: 10px;
+text-indent: -9999em;
+width: 6em;
+height: 6em;
+border-radius: 50%;
+background: #000;
+background: linear-gradient(to right, #000 10%, rgba(255, 255, 255, 0) 42%);
+-webkit-animation: load3 1.4s infinite linear;
+animation: load3 1.4s infinite linear;
+-webkit-transform: translateZ(0);
+-ms-transform: translateZ(0);
+transform: translateZ(0);
+z-index: 999;
+}
+.loader:before {
+width: 50%;
+height: 50%;
+background: #000;
+border-radius: 100% 0 0 0;
+position: absolute;
+top: 0;
+left: 0;
+content: '';
+}
+.loader:after {
+background: #ffffff;
+width: 75%;
+height: 75%;
+border-radius: 50%;
+content: '';
+margin: auto;
+position: absolute;
+top: 0;
+left: 0;
+bottom: 0;
+right: 0;
+}
+@-webkit-keyframes load3 {
+0% {
+  -webkit-transform: rotate(0deg);
+  transform: rotate(0deg);
+}
+100% {
+  -webkit-transform: rotate(360deg);
+  transform: rotate(360deg);
+}
+}
+@keyframes load3 {
+0% {
+  -webkit-transform: rotate(0deg);
+  transform: rotate(0deg);
+}
+100% {
+  -webkit-transform: rotate(360deg);
+  transform: rotate(360deg);
+}
+}
+
+
+/* step1 should be a central rounded box with position absolute */
+#step1 {
+position: absolute;
+top: 50%;
+left: 50%;
+transform: translate(-50%, -50%);
+width: 30vw;
+/* height: 200px; */
+border-radius: 20px;
+background-color: #FFAFA3;
+/* box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); */
+padding: 20px;
+text-align: center;
+/* font-family: Arial, sans-serif; */
+z-index:999;
+}
+
+@media (max-width: 900px) { 
+  #step1{
+    width: 80vw;
+  }
+}
+
+#step2{
+width: 300px;
+border-radius: 0px 20px 20px 0px;
+background-color: #9AA4D4;
+padding: 20px;
+text-align: left;
+z-index:999;
+}
+#step2 * {
+margin-top: 5px;
+}
+
+.grow {
+/* width:500px;
+height:200px; */
+position:fixed;
+left:-320px;
+transition: left 1s, opacity 1s;
+-webkit-transition: left 1s, opacity 1s;
+text-align: center;
+/* overflow: auto; */
+opacity:var(--hide-opacity);
+}
+.grow:hover {
+left:0px;
+opacity:1 !important;
+}
+
+
+.hover{
+left:0px;
+opacity:1;
+}
+
+.progressBarContainer {
+  /* float on top right of screen */
+  position: fixed;
+  top: 0;
+  right: 0;
+  text-align: right;
+  padding:15px;
+}
+
+
+progress{
+  width:100%;
+}
+
+
+.smallhelp{
+  font-size: small;
+  /* italic */
+  font-style: italic;
+}

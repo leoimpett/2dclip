@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Three.js Example</title>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background-color: white;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    // Load the JSON file of image URLs
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', './images.json', true);
+    xhr.onload = function() {
+      var urls = JSON.parse(xhr.responseText);
+
+      // Create a new Three.js scene
+      var scene = new THREE.Scene();
+      
+      // Create a new Three.js camera
+      var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 5;
+
+      // Create a new Three.js renderer and add it to the page
+      var renderer = new THREE.WebGLRenderer();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.domElement.style.position = 'absolute';
+      renderer.domElement.style.top = 0;
+      renderer.domElement.style.left = 0;
+      document.body.appendChild(renderer.domElement);
+
+
+      // Create a new instance of OrbitControls
+      var controls = new THREE.OrbitControls(camera, renderer.domElement);
+      // controls.enableDamping = true;
+      // controls.dampingFactor = 0.05;
+      controls.enablePan = true;
+      controls.enableZoom = true;
+      controls.minDistance = .1;
+      controls.maxDistance = 30;
+      controls.mouseButtons = {
+        LEFT: THREE.MOUSE.PAN,
+        MIDDLE: THREE.MOUSE.DOLLY
+      }
+
+      // Restrict camera movement to 2D panning and zooming
+      controls.enableRotate = false;
+      controls.minPolarAngle = Math.PI / 2;
+      controls.maxPolarAngle = Math.PI / 2;
+
+
+      maxNimages = 10000;
+      if (urls.length > maxNimages) {
+        urls = urls.slice(0, maxNimages);
+      } 
+
+// Load each image and add it to the viewport with random X and Y coordinates
+var maxLength = 0.1;
+spritesAdded = 0;
+urls.forEach(function(url) {
+  var sprite = new THREE.Sprite();
+  var texture = new THREE.TextureLoader().load(url, function() {
+    // Calculate the aspect ratio of the image
+    var aspectRatio = texture.image.width / texture.image.height;
+    // Determine which dimension is limiting and scale the sprite accordingly
+    if (aspectRatio >= 1) {
+      sprite.scale.set(maxLength, maxLength / aspectRatio, 1.0);
+    } else {
+      sprite.scale.set(maxLength * aspectRatio, maxLength, 1.0);
+    }
+  });
+
+  sprite.material = new THREE.SpriteMaterial({ map: texture });
+
+  // Set random X and Y coordinates
+  sprite.position.x = Math.random() * 20 - 10;
+  sprite.position.y = Math.random() * 20 - 10;
+
+  // Add onclick event listener to open image source URL in a new tab
+  sprite.element = document.createElement('a');
+  sprite.element.href = url;
+  sprite.element.target = '_blank';
+  sprite.element.style.display = 'none';
+  document.body.appendChild(sprite.element);
+
+  sprite.addEventListener('click', function() {
+    sprite.element.click();
+  });
+
+  scene.add(sprite);
+  spritesAdded++;
+});
+
+
+
+
+      // Render the scene
+      function animate() {
+        requestAnimationFrame(animate);
+        renderer.render(scene, camera);
+      }
+      animate();
+    };
+    xhr.send();
+  </script>
+</body>
+</html>

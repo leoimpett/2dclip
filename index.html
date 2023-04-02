@@ -6,216 +6,12 @@
     <title>2DCLIP</title>
     <script src="enable-threads.js"></script>
     <script src="./vips/vips.js"></script>
+    <script src="umap-js.min.js"></script>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="stylesheet" href="2dclip.css">
   </head>
   <body>
-    <style>
-
-    :root {
-      --hide-opacity: 0.3;
-    }
-
-      html {
-        overflow:clip;
-        /* Gill Sans, sans-serif */
-        /* font-family: Helvetica, sans-serif; */
-        /* font-family: Gill Sans, sans-serif; */
-        font-family: Andale Mono, monospace;
-      }
-      body * {
-    font-family: inherit;
-        font-weight: 100;
-      }
-      a {
-        color: darkred;
-        font-weight: bold;
-      }
-      button{
-        border-radius: 2px;
-        font-size: 14px;
-      }
-      #tooltip{
-        width:100px;
-        height:25px;
-        position:absolute;
-      }
-      .absblock{
-        position:absolute;
-        top:0;
-        left:0;
-        width:20vw;
-        height:20vh;
-        overflow:auto;
-        z-index:100;
-      }
-      #map-container {
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        z-index:-1;
-      }
-      #x-axis-label {
-  position: fixed;
-  bottom: 2em;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
-#y-axis-label {
-  position: fixed;
-  top: 50%;
-  left: 0;
-  transform: translateY(-50%) rotate(-90deg);
-}
-.axis-label {
-  font-size: 14px;
-  /* font-family: Arial, sans-serif; */
-  fill: black;
-  background-color: rgba(255, 255, 255, 0.5);
-}
-
-
-.loader {
-  display:none;
-  position: absolute;
-  /* put in the centre of the page */
-  top: 50%;
-  left: 50%;
-  font-size: 10px;
-  text-indent: -9999em;
-  width: 6em;
-  height: 6em;
-  border-radius: 50%;
-  background: #000;
-  background: linear-gradient(to right, #000 10%, rgba(255, 255, 255, 0) 42%);
-  -webkit-animation: load3 1.4s infinite linear;
-  animation: load3 1.4s infinite linear;
-  -webkit-transform: translateZ(0);
-  -ms-transform: translateZ(0);
-  transform: translateZ(0);
-}
-.loader:before {
-  width: 50%;
-  height: 50%;
-  background: #000;
-  border-radius: 100% 0 0 0;
-  position: absolute;
-  top: 0;
-  left: 0;
-  content: '';
-}
-.loader:after {
-  background: #ffffff;
-  width: 75%;
-  height: 75%;
-  border-radius: 50%;
-  content: '';
-  margin: auto;
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  right: 0;
-}
-@-webkit-keyframes load3 {
-  0% {
-    -webkit-transform: rotate(0deg);
-    transform: rotate(0deg);
-  }
-  100% {
-    -webkit-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
-}
-@keyframes load3 {
-  0% {
-    -webkit-transform: rotate(0deg);
-    transform: rotate(0deg);
-  }
-  100% {
-    -webkit-transform: rotate(360deg);
-    transform: rotate(360deg);
-  }
-}
-
-
-/* step1 should be a central rounded box with position absolute */
-#step1 {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 30vw;
-  /* height: 200px; */
-  border-radius: 20px;
-  background-color: #FFAFA3;
-  /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.5); */
-  padding: 20px;
-  text-align: center;
-  /* font-family: Arial, sans-serif; */
-  z-index:999;
-}
-
-@media (max-width: 900px) { 
-    #step1{
-      width: 80vw;
-    }
-}
-
-#step2{
-  width: 300px;
-  border-radius: 0px 20px 20px 0px;
-  background-color: #9AA4D4;
-  padding: 20px;
-  text-align: left;
-  z-index:999;
-}
-#step2 * {
-  margin-top: 5px;
-}
-
-.grow {
-  /* width:500px;
-  height:200px; */
-  position:fixed;
-  left:-320px;
-  transition: left 1s, opacity 1s;
-  -webkit-transition: left 1s, opacity 1s;
-  text-align: center;
-  /* overflow: auto; */
-  opacity:var(--hide-opacity);
-}
-.grow:hover {
-  left:0px;
-  opacity:1 !important;
-}
-
-
-.hover{
-  left:0px;
-  opacity:1;
-
-}
-
-  #downloadingProgressBars {
-    /* float on top right of screen */
-    position: fixed;
-    top: 0;
-    right: 0;
-    text-align: right;
-    padding:15px;
-  }
-
-  .smallhelp{
-    font-size: small;
-    /* italic */
-    font-style: italic;
-  }
-
-
-
-    </style>
     <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.12.0/dist/ort.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.17.0/dist/tf.min.js"></script> <!-- NOTE: tfjs is currently only used for image preprocessing stuff. -->
     <script src="https://d3js.org/d3.v6.min.js"></script>
@@ -247,14 +43,14 @@
           <br>
          For more information see the <a href="https://github.com/leoimpett/2dclip" target="_blank">Github page</a>.
          <br>
-        To get started, hit 'Load folder' below. </p>
+        To get started, hit 'Load folder' below. </p> 
 
 
         Model:
      <select onchange="window.MODEL_NAME=this.value;" style="width:100px">
-       <option value="clip_vit_32">CLIP ViT-B/32 (recommended)</option>
-       <option value="clip_vit_32_uint8">CLIP ViT-B/32 (quantized - inaccurate embeddings)</option>
-       <option value="lit_b16b">LiT B16B</option>
+      <option value="clip_vit_32_uint8">Small (CLIP ViT-B/32 quantised - smaller and less accurate)</option>
+       <option value="clip_vit_32">Big (CLIP ViT-B/32 original - larger but more accurate)</option>
+       <!-- <option value="lit_b16b">LiT B16B</option> -->
      </select>
      <br><br>
      <button  onclick="doAll()">Load folder</button>
@@ -287,7 +83,8 @@
           <hr>
           <h3>Plot</h3>
 
-            <p class="smallhelp">Enter any two search terms in the fields below - the similarity between the image and the term will control the position of the image. You can try concrete terms or abstract concepts. </p>
+            <p class="smallhelp">Enter any two search terms in the fields below - the similarity between the image and the term will control the position of the image. You can try concrete terms or abstract concepts. <br>
+            If you press "Plot" without entering any search terms, your images will be plotted based on visual similarity alone. </p>
             <!-- <br><br> -->
         X: <input id="searchTextEl" style="width:100px;" value="" placeholder="Symmetry" onkeyup="if(event.which==13) searchSort()">
         <br>
@@ -322,7 +119,7 @@
        </div>
        <span id="preexistingEmbeddingsEl" class="smallhelp"></span>
        <div id="computedEmbeddings" class="smallhelp">
-        <span id="computeEmbeddingsProgressEl">0</span> of <span id="totalNumberImages">0</span> ims (<span id="computeEmbeddingsSpeedEl">?</span> ms/im). 
+        <span id="computeEmbeddingsProgressEl">0</span> of <span id="totalNumberImages">0</span> ims, <span id="computeEmbeddingsSpeedEl">?</span> remaining. 
         <progress id="computeEmbeddingsLoadingProgressBarEl" value="0"></progress>
         <p class="smallhelp">Still loading images, but feel free to enter some text in the axes above and hit enter.</p>
        </div>
@@ -414,7 +211,8 @@
       
 
       // first we need to download the models and initialize the workers 
-      window.MODEL_NAME = "clip_vit_32";
+      // window.MODEL_NAME = "clip_vit_32";
+      window.MODEL_NAME = "clip_vit_32_uint8"
       window.modelData = {
         clip_vit_32: {
           image: {
@@ -593,13 +391,10 @@
           directoryHandle = await window.showDirectoryPicker();
           embeddingsFileHandle = await directoryHandle.getFileHandle(`${window.MODEL_NAME}_embeddings.tsv`, {create:true});
           
-          // pickDirectoryBtn.disabled = true;
-          // useRedditImagesBtn.disabled = true;
-          // pickDirectoryBtn.textContent = "Loading...";
 
         }
         
-        let redditEmbeddingsBlob;
+        // let redditEmbeddingsBlob;
         // if(dataSource === "reddit") {
         //   if(window.MODEL_NAME !== "clip_vit_32") return alert("Sorry, there are only pre-computed Reddit image embeddings for the CLIP ViT-B/32 model at the moment.");
         //   if(!removeRedditNsfwEl.checked && !confirm("Are you sure you'd like to see NSFW Reddit images?")) return;
@@ -616,6 +411,8 @@
         //     redditProgressMbEl.innerHTML = Math.round(ratio*213)+" MB";
         //   });
         // }
+
+
         
         try {
           existingEmbeddingsProgressCtn.style.display = "";
@@ -626,17 +423,31 @@
             file = await embeddingsFileHandle.getFile();
             opts = {};
           }
-          if(dataSource === "reddit") {
-            file = redditEmbeddingsBlob;
-            opts = {decompress:"gzip"};
+          if(dataSource === "online") {
+            // file = redditEmbeddingsBlob;
+            // opts = {decompress:"gzip"};
+            // add this back in for producton:
+            file = await embeddingsFileHandle.getFile();
+            opts = {};
           }
           
           let i = 0;
           for await (let line of makeTextFileLineIterator(file, opts)) {
             if(!line || !line.trim()) continue; // <-- to skip final new line (not sure if this is needed)
-            let [filePath, embeddingVec] = line.split("\t");
+            // see how long line.split("\t") is 
+            splitline = line.split("\t");
+            if (splitline.length == 2) {
+              let [filePath, embeddingVec] = splitline
+            // console.log([filePath, embeddingVec])
             embeddings[filePath] = JSON.parse(embeddingVec);
             i++;
+            }
+            // if 3
+            else if (splitline.length == 3) {
+              let [filePath, embeddingVec, catalog] = splitline
+            embeddings[filePath] = JSON.parse(embeddingVec);
+            i++;
+            }
             if(i % 1000 === 0) {
               existingEmbeddingsLoadedEl.innerHTML = i;
               await sleep(10);
@@ -648,12 +459,7 @@
           existingEmbeddingsProgressCtn.style.display = "none";
         }
         
-        // pickDirectoryBtn.textContent = "Done.";
-        // useRedditImagesBtn.textContent = "Done.";
-
-        // disableCtn(pickDirCtnEl);
-        // enableCtn(computeEmbeddingsCtnEl);
-        // enableCtn(searchCtnEl);
+ 
 
           // hide #step1
           document.getElementById("step1").style.display = "none";
@@ -666,14 +472,7 @@
             document.getElementById("step2").classList.remove("hover");
           }, 2000);
 
-        // if(embeddings && Object.keys(embeddings).length > 0) {
-        //   computeEmbeddingsCtnEl.style.display = "none";
-        //   existingEmbeddingsFoundCtnEl.style.display = "";
-        // }
-        
-        // if(dataSource === "reddit") {
-        //   disableCtn(existingEmbeddingsFoundCtnEl);
-        // }
+ 
 
 
         // show searchSpinner
@@ -687,8 +486,10 @@
             // console.log("waiting for vips")
             await sleep(100);
           }
-          computeImageEmbeddings() // <-- this is the end of pickdirectory
 
+          if(dataSource === "local") {
+            computeImageEmbeddings() // <-- this is the end of pickdirectory
+          }
 
       }
       
@@ -732,7 +533,7 @@
           embeddings = {}; // <-- maps file path (relative to top/selected directory) to embedding
         }
 
-        console.log(recomputeAllEmbeddings, gotSomeExistingEmbeddings, Object.keys(embeddings).length)
+        // console.log(recomputeAllEmbeddings, gotSomeExistingEmbeddings, Object.keys(embeddings).length)
         
         try {
           await recursivelyProcessImagesInDir(directoryHandle);
@@ -754,6 +555,7 @@
       async function recursivelyProcessImagesInDir(dirHandle, currentPath="") {
 
 
+        // console.log(dirHandle, currentPath)
             // image count first!!! 
                   let imageCount = 0;
 
@@ -791,6 +593,7 @@
         for await (let [name, handle] of dirHandle) {
           const {kind} = handle;
           let path = `${currentPath}/${name}`;
+
           if (handle.kind === 'directory') {
             await recursivelyProcessImagesInDir(handle, path);
           } else {
@@ -866,7 +669,17 @@
               
               recentEmbeddingTimes.push(Date.now()-startTime);
               if(recentEmbeddingTimes.length > 100) recentEmbeddingTimes = recentEmbeddingTimes.slice(-50);
-              if(recentEmbeddingTimes.length > 10) computeEmbeddingsSpeedEl.innerHTML = Math.round(recentEmbeddingTimes.slice(-20).reduce((a,v) => a+v, 0)/20);
+              // if(recentEmbeddingTimes.length > 10) computeEmbeddingsSpeedEl.innerHTML = Math.round(recentEmbeddingTimes.slice(-20).reduce((a,v) => a+v, 0)/20);
+
+              // Compute the expected time left
+              let expectedTimeLeft = Math.round((imageCount - Object.keys(embeddings).length) * recentEmbeddingTimes.slice(-20).reduce((a,v) => a+v, 0)/20);
+              // convert to minutes and seconds
+              const expectedTimeString = `${Math.floor(expectedTimeLeft / 60000).toString().padStart(2, '0')}:${Math.floor((expectedTimeLeft % 60000) / 1000).toString().padStart(2, '0')}`;
+
+              if(recentEmbeddingTimes.length > 10) computeEmbeddingsSpeedEl.innerHTML = expectedTimeString;
+
+              
+
 
               imagesBeingProcessedNow--;
             })();
@@ -897,7 +710,51 @@
 
 
 
-        // X axis
+
+        const imageData = [];
+        let resultHtml = "";
+        let numResults = 0;
+        imageResults = [];
+
+
+
+        // if searchTextEl.value OR searchTextEl2.value are blank
+        if((searchTextEl.value=="")||(searchTextEl2.value=="")){
+          // Then do UMAP stuff
+          dataArray = [];
+        for(let [path, embedding] of Object.entries(embeddings)) {
+          // similarities[path] = cosineSimilarity(searchTextEmbedding, embedding);
+          dataArray.push(embedding);
+        }
+
+        const umap = new UMAP({minDist:.2});
+        // const umap = new UMAP({distanceFn:"cosine"});
+        // Cosine distance doesn't seem to be working - check again some other time. 
+        umap_embedding = umap.fit(dataArray);
+
+
+        for(let [path, embedding] of Object.entries(embeddings)) {
+
+          // index 
+          i = Object.keys(embeddings).indexOf(path);
+           score = umap_embedding[i][0]
+           score2 = umap_embedding[i][1]
+          //  if path is not already a URL
+          if(!path.startsWith("http")) {
+           handle = await getFileHandleByPath(path); 
+           url = URL.createObjectURL(await handle.getFile());
+          }
+          else{
+           url = path;
+          }
+            imageResults.push({url, path, score, score2});
+          }
+        }
+
+
+        else{
+          // Else - it means we have some text in both search boxes
+          // X axis
         let searchTextEmbedding = await modelData[MODEL_NAME].text.embed(searchTextEl.value, onnxTextSession);
         let similarities = {};
         for(let [path, embedding] of Object.entries(embeddings)) {
@@ -913,136 +770,20 @@
         }
         let similarityEntries2 = Object.entries(similarities2).sort((a,b) => b[1]-a[1]).slice(0, maxNImages);
 
-        if(dataSource === "reddit" && removeRedditNsfwEl.checked) {
-          let nsfwTextEmbedding = await modelData[MODEL_NAME].text.embed(atob('cG9ybiBuYWtlZCBwZW5pcyB2YWdpbmEgbnVkZSBzZXggZGljayBwdXNzeSBzZXh1YWwgcG9ybm9ncmFwaGljIGFzcyBib29icw=='), onnxTextSession); // nsfw words (hidden with `btoa`) 
-          let nsfwSimilarities = {};
-          for(let [path, similarity] of similarityEntries) {
-            let embedding = embeddings[path];
-            nsfwSimilarities[path] = cosineSimilarity(nsfwTextEmbedding, embedding);
-          }
-          similarityEntries = similarityEntries.filter(e => nsfwSimilarities[e[0]] < 0.2093);
-        }
-        
-        let resultHtml = "";
-        let numResults = 0;
-
-        imageResults = [];
-
-        // console.log("Getting image results")
-        // console.log("Similarity entries length: {}", similarityEntries.length)
-        // console.log(similarityEntries.slice(0, 50))
-
+        // Combine into imageResults
         for(let [path, score] of similarityEntries.slice(0, maxNImages)) {
-          if(dataSource === "local") {
-
-
             let handle = await getFileHandleByPath(path);
             let url = URL.createObjectURL(await handle.getFile());
             // resultHtml += `<img src="${url}" style="max-height:400px;" title="${path}: ${score}" loading="lazy"/>`;
             let score2 = similarities2[path];
             // Save to image results array
             imageResults.push({url, path, score, score2});
-            // console.log("Url: {}, Path: {}, Score: {}, length: {}", url, path, score, imageResults.length);
-
-
-
-          }
-          if(dataSource === "reddit") {
-            let url = `https://i.redd.it/${path.split("__")[1]}`;
-            let path = ''
-            // let postUrl = `https://reddit.com/comments/${path.split("__")[0].split("/")[1]}`;
-            // // resultHtml += `<a href="${postUrl}" target="_blank"><img src="${imageUrl}" onload="this.style.height='';this.style.width='';this.style.border='';" style="max-height:400px; height:300px; width:100px; border:1px solid black;" title="${path}: ${score}" loading="lazy"/></a>`;
-
-            // // Output just a link to the image and not the image itself, so that the user can right-click and "open image in new tab" to see the full-size image.
-            // resultHtml += `<a href="${postUrl}" target="_blank">${imageUrl}: ${score}</a><br/>`;
-            let score2 = similarities2[path];
-
-            imageResults.push({url, path, score, score2});
-            // console.log("Url: {}, Path: {}, Score: {}, length: {}", url, path, score, imageResults.length);
-
-          }
           numResults++;
         }
+        }
 
-        const imageData = [];
-        // go through all the images - of the form x: 0, y: 0, url: "path/to/image1.jpg" 
-
-        // Work out scaling factor for x axis - normalise scores to max 1 and min 0
-        // let maxScore = 0;
-        // let minScore = 1;
-        // for (let i = 0; i < imageResults.length; i++) {
-        //   if (imageResults[i].score > maxScore) {
-        //     maxScore = imageResults[i].score;
-        //   }
-        //   if (imageResults[i].score < minScore) {
-        //     minScore = imageResults[i].score;
-        //   }
-        // }
-        // // normalise
-        // for (let i = 0; i < imageResults.length; i++) {
-        //   imageResults[i].score = (imageResults[i].score - minScore) / (maxScore - minScore);
-        // }
-
-        // // Same thing with score2
-        // let maxScore2 = 0;
-        // let minScore2 = 1;
-        // for (let i = 0; i < imageResults.length; i++) {
-        //   if (imageResults[i].score2 > maxScore2) {
-        //     maxScore2 = imageResults[i].score2;
-        //   }
-        //   if (imageResults[i].score2 < minScore2) {
-        //     minScore2 = imageResults[i].score2;
-        //   }
-        // }
-        // // normalise
-        // for (let i = 0; i < imageResults.length; i++) {
-        //   imageResults[i].score2 = (imageResults[i].score2 - minScore2) / (maxScore2 - minScore2);
-        // }
-
-
-        // On clicking one of the images, it should open in a new tab
-        // On hovering over one of the images, it should show the path and score
-
-
-        // get a reference to the canvas element
-        // const pixicanvas = document.getElementById("map-container");
-
-        // // create a new Pixi.js application and append it to the canvas element
-        // const app = new PIXI.Application({
-        //   view: pixicanvas,
-        //   width: pixicanvas.width,
-        //   height: pixicanvas.height,
-        // });
 
         
-
-
-        // // create a new container for the images
-        // const container = new PIXI.Container();
-
-        // // create a texture loader to load the images
-        // const loader = new PIXI.Loader();
-        // for (const image of imageData) {
-        //   loader.add(image.title, image.url);
-        // }
-
-        // // when the images are loaded, create sprites for each image and add them to the container
-        // loader.load(() => {
-        //   for (const image of imageData) {
-        //     const sprite = new PIXI.Sprite(loader.resources[image.title].texture);
-        //     sprite.position.set(image.x, image.y);
-        //     sprite.width = sprite.height = imSize;
-        //     container.addChild(sprite);
-        //   }
-        // });
-
-        // // add the container to the stage and render the scene
-        // app.stage.addChild(container);
-        // app.ticker.add(() => {
-        //   app.renderer.render(app.stage);
-        // });
-
-        // Make a d3.js visualisation of the images
 
         const container = d3.select("#map-container");
 
@@ -1209,47 +950,58 @@
   // Now make svg
 
           const images = svg
-            .selectAll("image")
-            .data(imageData)
-            .join("image")
-            // .attr("href", d => d.url)
-            .attr("x", d => d.x)
-            .attr("y", d =>  d.y)
-            .attr("width", imSize)
-            .attr("height", imSize)
-            .on('click', function(event, d) { console.log(d.url); window.open(d.url, '_blank'); })
-            // .on('mouseover', function(event, d) {
-            //       // Add a tooltip to show the image title when hovering
-            //       d3.select('#tooltip')
-            //         .style('left', (event.pageX + 10) + 'px')
-            //         .style('top', (event.pageY + 10) + 'px')
-            //         .text(d.title )
-            //         .classed('hidden', false);
-            //     })
-            //     .on('mouseout', function(event) {
-            //       // Hide the tooltip when no longer hovering
-            //       d3.select('#tooltip').classed('hidden', true);
-            //     })   
-                .each(async function(d, i, nodes) {
-    const thumbnailBlob = await getThumbnail(d.url);
-    const thumbnailUrl = URL.createObjectURL(thumbnailBlob);
-    d3.select(nodes[i]).attr('href', thumbnailUrl);
-    if (i === nodes.length - 1) {
-      requestAnimationFrame(() => {
-        svg.node().dispatchEvent(new Event('redraw'));
-      });
-    }
-  })
-  .on('load', function() {document.getElementById("searchSpinner").style.display = "none";})
+              .selectAll("image")
+              .data(imageData)
+              .join("image")
+              // .attr("href", d => d.url)
+              .attr("x", d => d.x)
+              .attr("y", d =>  d.y)
+              .attr("width", imSize)
+              .attr("height", imSize)
+              .on('click', function(event, d) {
+              const url = d.fullURL || d.url;
+              console.log(url);
+              window.open(url, '_blank');
+              })
+              .each(async function(d, i, nodes) {
+              // if lots of images, dont make thumbnails - it just takes too  long! 
+              // bit hacky - consider removing. 
+              if(imageData.length < 2000){
+              thumbnailBlob = await getThumbnail(d.url);
+              thumbnailUrl = URL.createObjectURL(thumbnailBlob);
+              } else{
+              thumbnailUrl = d.url
+              }
+
+              d3.select(nodes[i]).attr('href', thumbnailUrl);
+              if (i === nodes.length - 1) {
+              requestAnimationFrame(() => {
+              svg.node().dispatchEvent(new Event('redraw'));
+              });
+              }
+              })
+              .on('load', function() {document.getElementById("searchSpinner").style.display = "none";})
+              // .on('mouseover', function(event, d) {
+              //       // Add a tooltip to show the image title when hovering
+              //       d3.select('#tooltip')
+              //         .style('left', (event.pageX + 10) + 'px')
+              //         .style('top', (event.pageY + 10) + 'px')
+              //         .text(d.title )
+              //         .classed('hidden', false);
+              //     })
+              //     .on('mouseout', function(event) {
+              //       // Hide the tooltip when no longer hovering
+              //       d3.select('#tooltip').classed('hidden', true);
+              //     })   
 
 
               // Just in case we are rerunning this without clicking checkbox, do the above
               if (forceDirected.property("checked")) {
-                images.attr("x", d => d.force_x)
-                      .attr("y", d => d.force_y);
+              images.attr("x", d => d.force_x)
+              .attr("y", d => d.force_y);
               } else {
-                images.attr("x", d => d.orig_x)
-                      .attr("y", d => d.orig_y);
+              images.attr("x", d => d.orig_x)
+              .attr("y", d => d.orig_y);
               }
 
 
@@ -1327,31 +1079,40 @@
         d3.select("svg").remove();
       }
 
-      async function getThumbnail(url) {
-  const maxDimension = 512;
-  const response = await fetch(url);
-  const blob = await response.blob();
-  const image = await createImageBitmap(blob);
-  const { width, height } = image;
-  const canvas = new OffscreenCanvas(width, height);
-  const context = canvas.getContext('2d');
-  context.drawImage(image, 0, 0);
-  let thumbnailWidth = width;
-  let thumbnailHeight = height;
-  if (thumbnailWidth > maxDimension) {
-    thumbnailWidth = maxDimension;
-    thumbnailHeight = Math.round(height * maxDimension / width);
-  }
-  if (thumbnailHeight > maxDimension) {
-    thumbnailHeight = maxDimension;
-    thumbnailWidth = Math.round(width * maxDimension / height);
-  }
-  const thumbnailCanvas = new OffscreenCanvas(thumbnailWidth, thumbnailHeight);
-  const thumbnailContext = thumbnailCanvas.getContext('2d');
-  thumbnailContext.drawImage(canvas, 0, 0, width, height, 0, 0, thumbnailWidth, thumbnailHeight);
-  const thumbnailBlob = await thumbnailCanvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 });
-  return thumbnailBlob;
-}
+      async function getThumbnail(url, maxSize = .5) {
+      const maxDimension = 512;
+      const response = await fetch(url);
+      const blob = await response.blob();
+
+      // Check if image is less than maxSize MB
+      const sizeInMB = blob.size / (1024 * 1024);
+      if (sizeInMB <= maxSize) {
+        // console.log("Image " + url + " is " + sizeInMB + " MB, less than " + maxSize + " MB, so not creating thumbnail.");
+        return blob; // return original image
+      }
+
+      const image = await createImageBitmap(blob);
+      const { width, height } = image;
+      const canvas = new OffscreenCanvas(width, height);
+      const context = canvas.getContext('2d');
+      context.drawImage(image, 0, 0);
+      let thumbnailWidth = width;
+      let thumbnailHeight = height;
+      if (thumbnailWidth > maxDimension) {
+        thumbnailWidth = maxDimension;
+        thumbnailHeight = Math.round(height * maxDimension / width);
+      }
+      if (thumbnailHeight > maxDimension) {
+        thumbnailHeight = maxDimension;
+        thumbnailWidth = Math.round(width * maxDimension / height);
+      }
+      const thumbnailCanvas = new OffscreenCanvas(thumbnailWidth, thumbnailHeight);
+      const thumbnailContext = thumbnailCanvas.getContext('2d');
+      thumbnailContext.drawImage(canvas, 0, 0, width, height, 0, 0, thumbnailWidth, thumbnailHeight);
+      const thumbnailBlob = await thumbnailCanvas.convertToBlob({ type: 'image/jpeg', quality: 0.8 });
+      return thumbnailBlob;
+    }
+
 
 
       async function getFileHandleByPath(path) {
@@ -1494,7 +1255,6 @@ function dataURLToBlob(dataURL) {
 }
 // end of IndexedDB code
 
-
       async function saveEmbeddings(opts={}) {
         let writable = await embeddingsFileHandle.createWritable();
         let textBatch = "";
@@ -1581,7 +1341,12 @@ function dataURLToBlob(dataURL) {
   // searchtextel
   const prompt1 = document.getElementById('searchTextEl').value;
   const prompt2 = document.getElementById('searchTextEl2').value;
-  let csv = 'Image,' + prompt1 + ',' + prompt2 + '\n';
+
+  // If prompt1 or prompt2 are empty, replace with x-axis or y-axis
+  prompt1Label = prompt1 || 'x-axis-UMAP';
+  prompt2Label = prompt2 || 'y-axis-UMAP';
+
+  let csv = 'Image,' + prompt1Label + ',' + prompt2Label + '\n';
 
   // Iterate through the d3 data and add a row for each file, with d.score and d.score2 
   // as the prompt1 and prompt2 scores.
