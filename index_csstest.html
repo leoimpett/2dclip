@@ -18,160 +18,236 @@
   </head>
   <body>
 
-    
-
-
       <div class="progressBarContainer">
-      <div id="downloadingProgressBars"   >
-        Loading image model: <span id="imageModelLoadingMbEl"></span> <progress id="imageModelLoadingProgressBarEl" value="0.2"></progress> 
-        <br>
-        Loading text model: <span id="textModelLoadingMbEl"></span> <progress id="textModelLoadingProgressBarEl" value="0.5"></progress> 
-      </div>
-
-      <div id="renderingProgressBar"   >  
-        Loading thumbnails: <progress id="renderingProgressBarEl" value="0.7"></progress> <span id="renderingTimeLeft"></span> 
-      </div>
-
-      Encoding images: 
-      <progress id="computeEmbeddingsLoadingProgressBarEl" value="0.9"></progress>
-
-    </div>
-
-      <div id="step1">
-        <h1>image-atlas</h1>
-
-        <p> maps an image dataset by textual descriptions
-        </p>
-
-        <table style="width:100%">
-          <tr>
-            <td style="width:50%" class="step1hover">load local dataset:
-
-              <br><br>
-
-              <button  onclick="doAll()">choose folder</button>
-            
-            </td>
-            <td class="step1hover">load cloud dataset:
-              
-              <br><br>
-
-              <select onchange="getWebDataset(this.value);"  class="step1selector">
-                <option value="clip_vit_32_embeddings.tsv.gz">Fitzwilliam</option>
-                 <option value="clip_vit_32_embeddings.tsv.gz">MOMA</option>
-                 <!-- <option value="lit_b16b">LiT B16B</option> -->
-               </select>
-
-            </td>
-          </tr>
-
-
-
-        </table>
-
-        <br><br>
-
-
-
-        <div class="step1hover">
-     choose backend:
-     <br><br>
-     <select onchange="window.MODEL_NAME=this.value;" class="step1selector" >
-      <option value="clip_vit_32_uint8">Small (low memory/bandwidth)</option>  
-      <!--  - CLIP ViT-B/32 quantized vs   CLIP ViT-B/32 original -->
-       <option value="clip_vit_32">Accurate (high memory/bandwidth)</option>
-       <!-- <option value="lit_b16b">LiT B16B</option> -->
-     </select>
-    </div>
-     <!-- <span id="helpText" style="display:none">Click <a href="./fitzwilliam_thumbs.zip">here</a> for a dataset to get you started. You might also try <a href="https://datasetsearch.research.google.com/" target="_blank">Google Dataset Search</a>, or going to a museum website and downloading all the images with a <a href="https://chrome.google.com/webstore/detail/image-downloader/cnpniohnfphhjihaiiggeabnkjhpaldj?hl=en-US" target="_blank"> browser extension</a>.
-     </span> -->
-
-
-   </div>
-
-
-
-   
-      
-          <div >
-
-          <div id="step2" class="grow" >
-
-          <h2>image-atlas</h2>
-
-
-            <!-- <p class="smallhelp">Enter any two search terms in the fields below - the similarity between the image and the term will control the position of the image. You can try concrete terms or abstract concepts. <br>
-            If you press "Plot" without entering any search terms, your images will be plotted based on visual similarity alone. </p> -->
-            <!-- <br><br> -->
-
-              
-
-          <div class="searchTextContainer">        
-         <p>X: </p><input id="searchTextEl"   value="" placeholder="Symmetry"  class="promptInput">
-       </div>
-        <!-- onkeyup="if(event.which==13)  -->
-        <br>
-        <div class="searchTextContainer">       
-         <p>Y: </p><input id="searchTextEl2"   value="" placeholder="Landscape"   class="promptInput">
-      </div>
-        <br>
-        <button id="searchBtn"  >Plot</button>
-        <br>
-        <button id="screenshot" onclick="getCSV()">Download CSV</button>
-
-        <br>
-
-
-
-        <div class="smallhelp">
-        
-        <input type="checkbox" id="forceDirected" class="checkbox" checked>Force separation
-        <br>
-        
-        <input type="checkbox" id="hideToolbar" class="checkbox" >Hide toolbar
-
-      </div>
-
-        <!-- <div id="localImagePanel">
-
-
-         <h3>Image Processing</h3> 
-
-        <div id="existingEmbeddingsFoundCtnEl" >
-          <button id="changeFolder" onclick="doAll()">Change folder</button>
-          <br><br>
-         <input id="onlyEmbedNewImagesCheckbox" type="checkbox" checked  style="display:none" >
-       </div>
-       <span id="preexistingEmbeddingsEl" class="smallhelp"></span>
-       <div id="computedEmbeddings" class="smallhelp">
-        <span id="computeEmbeddingsProgressEl">0</span> of <span id="totalNumberImages">0</span> images<span id="computeEmbeddingsSpeedEl"></span>
-       </div>
-      </div> -->
-
+        <div id="downloadingProgressBars"  >
+          Loading image model: <span id="imageModelLoadingMbEl"></span> <progress id="imageModelLoadingProgressBarEl" value="0.2"></progress> 
+          <br>
+          Loading text model: <span id="textModelLoadingMbEl"></span> <progress id="textModelLoadingProgressBarEl" value="0.5"></progress> 
+        </div>
+  
+        <div id="renderingProgressBar"  >  
+          Loading thumbnails: <progress id="renderingProgressBarEl" value="0.7"></progress>  
         </div>
 
+        <div id="UMAPProgressBar">
+          Reducing to 2D Grid:  <progress id="UMAPProgressBarEl" value="0.7"></progress> 
+        </div>
+  
+        <div id="computeEmbeddingsProgress">
+        <span id="computeEmbeddingsText">Encoding images:</span>
+        <progress id="computeEmbeddingsLoadingProgressBarEl" value="0.9"></progress>
+        </div>
+
+
+  
       </div>
-      
-
-
-        <!-- <div style="display:none;"> <!-- more workers (dividing threads between them) doesn't seem to make things faster -->
-          <!-- Number of image embedding workers/threads: <input id="numThreadsEl" type="range" min="1" max="4" value="4" oninput="numThreadsDisplayEl.textContent=this.value"> <span id="numThreadsDisplayEl"></span> <script>numThreadsEl.max = navigator.hardwareConcurrency; numThreadsDisplayEl.textContent=numThreadsEl.value;</script> -->
-        <!-- </div>  -->
-
-      
-    <div id="map-container" style="height:100%; width:100%;"></div>
-    <div id="x-axis-label"></div>
-    <div id="y-axis-label"></div> 
-
-
-
-    <div id="searchSpinner" class="loader"> </div>
-
-
-      <div id="image-popup">
-        <div id="image-popup-content"></div>
+  
+        <div id="step1">
+          <h1>image-atlas</h1>
+  
+          <p> maps an image dataset by textual descriptions
+          </p>
+          
+          <table style="width:100%">
+            <tr>
+              <td style="width:50%" class="step1hover">load local dataset:
+  
+                <br><br>
+  
+                <button  onclick="doAll()">choose folder</button>
+              
+              </td>
+              <td class="step1hover">load cloud dataset:
+                
+                <br><br>
+  
+                <select onchange="if(this.value){getWebDataset(this.value)};"  class="step1selector">
+                  <option value="0" ></option>
+                  <option value="fitz.json" >Fitzwilliam Museum</option>
+                   <!-- <option value="0">MOMA</option> -->
+                   <!-- <option value="lit_b16b">LiT B16B</option> -->
+                 </select>
+  
+              </td>
+            </tr>
+  
+  
+  
+          </table>
+  
+          <br><br>
+  
+  
+  
+          <div class="step1hover">
+       choose backend:
+       <br><br>
+       <select onchange="window.MODEL_NAME=this.value;" class="step1selector" >
+        <option value="clip_vit_32_uint8">Small (low memory/bandwidth)</option>  
+        <!--  - CLIP ViT-B/32 quantized vs   CLIP ViT-B/32 original -->
+         <option value="clip_vit_32">Accurate (high memory/bandwidth)</option>
+         <!-- <option value="lit_b16b">LiT B16B</option> -->
+       </select>
       </div>
+       <!-- <span id="helpText" style="display:none">Click <a href="./fitzwilliam_thumbs.zip">here</a> for a dataset to get you started. You might also try <a href="https://datasetsearch.research.google.com/" target="_blank">Google Dataset Search</a>, or going to a museum website and downloading all the images with a <a href="https://chrome.google.com/webstore/detail/image-downloader/cnpniohnfphhjihaiiggeabnkjhpaldj?hl=en-US" target="_blank"> browser extension</a>.
+       </span> -->
+  
+  
+     </div>
+  
+  
+  
+     
+        
+            <div >
+  
+            <div id="step2" class="grow" style="display:none">
+  
+            <h2>image-atlas</h2>
+  
+  
+              <!-- <p class="smallhelp">Enter any two search terms in the fields below - the similarity between the image and the term will control the position of the image. You can try concrete terms or abstract concepts. <br>
+              If you press "Plot" without entering any search terms, your images will be plotted based on visual similarity alone. </p> -->
+              <!-- <br><br> -->
+  
+                
+  
+            <div class="searchTextContainer">        
+           <p>X: </p><input id="searchTextEl"   value="" placeholder="Symmetry"  class="promptInput">
+         </div>
+          <!-- onkeyup="if(event.which==13)  -->
+          <br>
+          <div class="searchTextContainer">       
+           <p>Y: </p><input id="searchTextEl2"   value="" placeholder="Landscape"   class="promptInput">
+        </div>
+          <br>
+          <button id="searchBtn"  >Plot</button>
+          <br>
+          <!-- <button id="screenshot" onclick="getCSV()">Download CSV</button> -->
+          <!-- <br> -->
+          <button id="resetUmap"  >Reset axes</button>
+  
+          <br>
+  
+  
+  
+          <div class="smallhelp">
+          
+          <input type="checkbox" id="forceDirected" class="checkbox" checked>Force separation
+          <br>
+          
+          <input type="checkbox" id="hideToolbar" class="checkbox" >Hide toolbar
+            <br>
+          <button class="material-symbols-outlined" onclick="resetZoom()">
+            Reset zoom
+            </button> 
+        </div>
+  
+          <!-- <div id="localImagePanel">
+  
+  
+           <h3>Image Processing</h3> 
+  
+          <div id="existingEmbeddingsFoundCtnEl" >
+            <button id="changeFolder" onclick="doAll()">Change folder</button>
+            <br><br>
+           <input id="onlyEmbedNewImagesCheckbox" type="checkbox" checked  style="display:none" >
+         </div>
+         <span id="preexistingEmbeddingsEl" class="smallhelp"></span>
+         <div id="computedEmbeddings" class="smallhelp">
+          <span id="computeEmbeddingsProgressEl">0</span> of <span id="totalNumberImages">0</span> images<span id="computeEmbeddingsSpeedEl"></span>
+         </div>
+        </div> -->
+  
+          </div>
+  
+        </div>
+        
+  
+  
+          <!-- <div style="display:none;"> <!-- more workers (dividing threads between them) doesn't seem to make things faster -->
+            <!-- Number of image embedding workers/threads: <input id="numThreadsEl" type="range" min="1" max="4" value="4" oninput="numThreadsDisplayEl.textContent=this.value"> <span id="numThreadsDisplayEl"></span> <script>numThreadsEl.max = navigator.hardwareConcurrency; numThreadsDisplayEl.textContent=numThreadsEl.value;</script> -->
+          <!-- </div>  -->
+  
+        
+      <div id="map-container" style="height:100%; width:100%;"></div>
+      <div id="x-axis-label"></div>
+      <div id="y-axis-label"></div> 
+  
+  
+  
+      <div id="searchSpinner" class="loader"> </div>
+  
+  
+        <div id="image-popup">
+          <div id="image-popup-content">
+            <div id="image-popup-text"></div>
+        </div>
+          
+        </div> 
 
 
   </body>
+
+
+  <script>
+    // Fake some functions from clip-three.js for interactivity
+
+    function step2(){
+
+// hide #step1
+document.getElementById("step1").style.display = "none";
+// show #step2
+document.getElementById("step2").style.display = "block";
+// Set step2 class to hover 
+document.getElementById("step2").classList.add("hover");
+// Set timeout to remove hover class 
+setTimeout(function(){
+  document.getElementById("step2").classList.remove("hover");
+}, 2000);
+
+
+// Show progress bars
+
+const progressBarContainer = document.getElementById("renderingProgressBar");
+progressBarContainer.style.display = "block";
+
+const progressBar = document.getElementById("renderingProgressBarEl");
+progressBar.value = 0
+function recursiveProgress(){
+  progressBar.value = progressBar.value +.1
+  if ( progressBar.value < .9){
+    setTimeout(recursiveProgress, 500);
+  }
+    else{
+      console.log("done")
+      progressBarContainer.style.display = "none";
+      document.getElementById("searchSpinner").style.display = "none";
+
+
+    }
+}
+setTimeout(recursiveProgress, 500);
+
+document.getElementById("searchSpinner").style.display = "block";
+
+}
+
+    function doAll(){
+      step2()
+    }
+
+    function getWebDataset(){
+      step2()
+    }
+
+    function resetZoom(){console.log('zoom')}
+
+
+
+
+  </script>
+
+
+
 </html>

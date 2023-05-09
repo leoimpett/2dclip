@@ -102,6 +102,9 @@ let imageWorkers = [];
 let onnxImageSessions = [];
 let onnxTextSession;
 let textTokenizer;
+
+let imageResults; 
+
 async function initializeWorkers() {
 
   workersInitialised = true; 
@@ -698,7 +701,7 @@ console.log("calculating umap and loading embeddings in parallel...");
 
 const imageResultsPromise = loadThumbnails(embeddings);
 
-const [umap_embedding, imageResults] = await Promise.all([umapPromise, imageResultsPromise]);
+[umap_embedding, imageResults] = await Promise.all([umapPromise, imageResultsPromise]);
 
 // Get rid of UMAPProgressBar
 document.getElementById("UMAPProgressBar").style.display = "none";
